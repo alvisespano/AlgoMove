@@ -5,4 +5,4 @@ Authors: Alvise Spanò, Lorenzo Benetollo, Michele Bugliesi, Silvia Crafa, Dalil
 
 # Working repo
 
-AlgoMove is under development at its official repository: github.com/lollobene/AlgoMove
+AlgoMove is under development at its official repository: [http://github.com/lollobene/AlgoMove]
