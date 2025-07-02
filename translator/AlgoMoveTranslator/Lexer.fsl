@@ -1,0 +1,84 @@
+﻿{
+
+open System
+open FSharp.Text.Lexing
+
+open FSharp.Common.Parsing
+open FSharp.Common.Parsing.LexYacc
+open AlgoMoveTranspiler.Absyn
+open AlgoMoveTranspiler.Parser
+
+let trim c lexbuf = let s = lexeme lexbuf in s.TrimStart [|c|] 
+
+}
+
+let whitespace = [' ' '\t' ]
+let newline = ('\n' | "\r\n")
+let digit = ['0'-'9']
+let nat = digit+
+
+let idbody = ['a'-'z' 'A'-'Z' '0'-'9' '_']*['\'']*	
+let Uid = ['A'-'Z'] idbody
+let Lid = ['a'-'z' '_'] idbody
+let id = Uid | Lid
+
+rule blockcomment = parse
+    | "*/"				{ tokenize lexbuf }
+	| newline			{ newline lexbuf; blockcomment lexbuf } 
+	| _					{ blockcomment lexbuf }
+
+and linecomment = parse
+    | newline           { newline lexbuf; tokenize lexbuf }
+    | _                 { linecomment lexbuf }
+
+and tokenize = parse
+	| eof				{ EOF }
+	| whitespace		{ tokenize lexbuf }
+	| newline			{ newline lexbuf; tokenize lexbuf }
+
+	| "//"				{ linecomment lexbuf }
+	| "/*"          	{ blockcomment lexbuf }
+     
+	// keywords
+	| "module"		{ MODULE }
+	| "struct"		{ STRUCT }
+	| "has"			{ HAS }
+	| "copy"		{ COPY }
+	| "drop"		{ DROP }
+	| "key"			{ KEY }
+	| "store"		{ STORE }
+	| "public"		{ PUBLIC }	
+	| "entry"		{ ENTRY }	
+
+	// types
+	| "u64"			{ TU64 }
+	| "bool"		{ TBOOL }
+	| "address"		{ TADDRESS }
+
+	// opcodes
+	| "MovLoc"		{ MOVLOC }
+	| "CpyLoc"		{ CPYLOC }
+	| "StLoc"		{ STLOC } 
+    
+	// brakets
+	| '('			{ BRA }
+	| ')'			{ KET }
+	| '['			{ SQBRA }
+	| ']'			{ SQKET }
+	| '{'			{ CURBRA }
+	| '}'			{ CURKET }
+
+	// punctuation
+	| ';'			{ SEMICOLON }
+	| ':'			{ COLON }
+	| ','			{ COMMA }
+	| '.'			{ DOT }
+
+	// literals
+	| nat   	    		{ UINT64 (UInt64.Parse (lexeme lexbuf)) }
+
+	// identifiers
+	| id 		            { ID (lexeme lexbuf) }
+
+
+
