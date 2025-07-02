@@ -8,7 +8,7 @@ type id = string
 type qid = id list
 type label = id
 
-type ty = Bool | U64 | Address
+type ty = Bool | U64 | Address | StructName of id | Ref of ty | MutRef of ty 
 
 type field = id * ty
 type arg = field
@@ -20,6 +20,7 @@ type capab = Key | Store | Copy | Drop
 type loc = uint64
 
 type opcode = 
+    | Nop
     | MovLoc of loc
     | CpyLoc of loc
     | StLoc of loc

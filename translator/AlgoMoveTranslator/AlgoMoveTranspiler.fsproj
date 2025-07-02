@@ -6,6 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+	  <None Include="tests\borrow_field_order.mv.asm" />
+	  <None Include="tests\loops_and_rec.mv.asm" />
+	  <None Include="tests\references.mv.asm" />
+	  <None Include="tests\struct_has_key.mv.asm" />
+	  <None Include="tests\struct_manipulation.mv.asm" />
 	  <Compile Include="Absyn.fs" />
 	  <FsYacc Include="Parser.fsy">
 		  <OtherFlags>--module AlgoMoveTranspiler.Parser</OtherFlags>
@@ -36,5 +41,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\FSharp.Common\FSharp.Common.fsproj" />
   </ItemGroup>
+
+  <ItemGroup />
 
 </Project>

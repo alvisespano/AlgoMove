@@ -16,7 +16,7 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 %token <System.String> ID
 
 %token MODULE STRUCT HAS COPY DROP KEY STORE PUBLIC ENTRY
-       TU64 TBOOL TADDRESS
+       TU64 TBOOL TADDRESS AMP AMPMUT
        BRA KET SQBRA SQKET CURBRA CURKET
        COLON SEMICOLON DOT COMMA
        MOVLOC CPYLOC STLOC
@@ -50,23 +50,14 @@ fields:
     args                        { $1 }
 
 funs:
-    funn                         { [$1] }
-  |                              { [] }
-  | funn funs                    { $1 :: $2 }
+    funn                        { [$1] }
+  |                             { [] }
+  | funn funs                   { $1 :: $2 }
  
 funn:
     quals ID BRA args KET
     return_ty
-    CURBRA skiplocs 
-    instrs CURKET               { { quals = $1; id = $2; args = $4; ret = $6; body = $9 } }
-
-skiploc:
-    label COLON ID ty           {}
-
-skiplocs:
-    skiploc                     { [$1] }
-  |                             { [] }
-  | skiploc SEMICOLON skiplocs  { $1 :: $3 }
+    CURBRA  body CURKET         { { quals = $1; id = $2; args = $4; ret = $6; body = $8 } }
    
 arg:
     ID COLON ty                 { $1, $3 }
@@ -76,13 +67,15 @@ args:
   |                             { [] }
   | arg COMMA args              { $1 :: $3 }
 
-instr:
-    label COLON opcode          { $1, $3 } 
+body:
+    bodyline                    { [$1] }
+  |                             { [] } 
+  | bodyline body               { $1 :: $2 }
 
-instrs:
-    instr                       { [$1] }
-  |                             { [] }
-  | instr instrs                { $1 :: $2 }
+bodyline:
+    label COLON opcode          { $1, $3 }
+  | label COLON ID COLON ty     { $1, Nop }
+  | label COLON                 { $1, Nop }
 
 quals:
     qual                        { [$1] }
@@ -100,6 +93,9 @@ ty:
     TU64                        { U64 }
   | TBOOL                       { Bool }
   | TADDRESS                    { Address }
+  | ID                          { StructName $1 }
+  | AMP ty                      { Ref $2 }
+  | AMPMUT ty                   { MutRef $2 }
 
 capabs:
     capab                       { [$1] }

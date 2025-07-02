@@ -25,7 +25,7 @@ let parse_from_string what p s = parse_from_string __syntax_error s (sprintf "%s
 let main argv =
     let r =
         try
-            let prg = load_and_parse_program "../../prova.ti"
+            let prg = load_and_parse_program "../../../../tests/borrow_field_order.mv.asm"
             Log "parsed program:\n\n%A" prg
             0
         with SyntaxError (msg, lexbuf) -> Log "\nsyntax error: %s\nat token: %A\nlocation: %O" msg lexbuf.Lexeme lexbuf.EndPos; 1

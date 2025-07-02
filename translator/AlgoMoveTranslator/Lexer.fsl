@@ -54,6 +54,8 @@ and tokenize = parse
 	| "u64"			{ TU64 }
 	| "bool"		{ TBOOL }
 	| "address"		{ TADDRESS }
+	| '&'			{ AMP }	
+	| "&mut"		{ AMPMUT }
 
 	// opcodes
 	| "MovLoc"		{ MOVLOC }

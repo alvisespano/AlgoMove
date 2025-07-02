@@ -14,6 +14,8 @@ type token =
   | TU64
   | TBOOL
   | TADDRESS
+  | AMP
+  | AMPMUT
   | BRA
   | KET
   | SQBRA
@@ -43,6 +45,8 @@ type tokenId =
     | TOKEN_TU64
     | TOKEN_TBOOL
     | TOKEN_TADDRESS
+    | TOKEN_AMP
+    | TOKEN_AMPMUT
     | TOKEN_BRA
     | TOKEN_KET
     | TOKEN_SQBRA
@@ -68,12 +72,10 @@ type nonTerminalId =
     | NONTERM_fields
     | NONTERM_funs
     | NONTERM_funn
-    | NONTERM_skiploc
-    | NONTERM_skiplocs
     | NONTERM_arg
     | NONTERM_args
-    | NONTERM_instr
-    | NONTERM_instrs
+    | NONTERM_body
+    | NONTERM_bodyline
     | NONTERM_quals
     | NONTERM_qual
     | NONTERM_return_ty
