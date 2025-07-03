@@ -17,7 +17,7 @@ let load_and_parse_program filename =
    use fstr = new IO.FileStream (filename, IO.FileMode.Open)
    use rd = new IO.StreamReader (fstr)
    Log "parsing source file '%s'..." filename
-   parse_from_TextReader rd filename (1, 1) Parser.modulee Lexer.tokenize Parser.tokenTagToTokenId
+   parse_from_TextReader rd filename (1, 1) Parser.program Lexer.tokenize Parser.tokenTagToTokenId
 
 let parse_from_string what p s = parse_from_string __syntax_error s (sprintf "%s:\"%s\"" what s) (0, 0) p Lexer.tokenize Parser.tokenTagToTokenId
 
@@ -26,8 +26,10 @@ let parse_from_string what p s = parse_from_string __syntax_error s (sprintf "%s
 let main argv =
     let r =
         try
-            let prg = load_and_parse_program "../../../../tests/borrow_field_order.mv.asm"
-            Log "parsed program:\n\n%A" prg
+            let mprg = load_and_parse_program "../../../../tests/borrow_field_order.mv.asm"
+            Log "parsed Move program:\n\n%A" mprg
+            let tprg = Gen.emit_program mprg
+            Log "\n\ngenerated TEAL program:\n\n%s" (Absyn.Teal.pretty_program tprg)
             0
         with SyntaxError (msg, lexbuf) -> 
                let u = lexbuf.EndPos 

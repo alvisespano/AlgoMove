@@ -159,8 +159,8 @@ type tokenId =
     | TOKEN_end_of_input
     | TOKEN_error
 type nonTerminalId = 
-    | NONTERM__startmodulee
-    | NONTERM_modulee
+    | NONTERM__startprogram
+    | NONTERM_program
     | NONTERM_structs
     | NONTERM_structt
     | NONTERM_fields
@@ -197,4 +197,4 @@ val prodIdxToNonTerminal: int -> nonTerminalId
 
 /// This function gets the name of a token as a string
 val token_to_string: token -> string
-val modulee : (FSharp.Text.Lexing.LexBuffer<'cty> -> token) -> FSharp.Text.Lexing.LexBuffer<'cty> -> ( AlgoMove.Transpiler.Absyn.Module ) 
+val program : (FSharp.Text.Lexing.LexBuffer<'cty> -> token) -> FSharp.Text.Lexing.LexBuffer<'cty> -> ( AlgoMove.Transpiler.Absyn.Move.program ) 

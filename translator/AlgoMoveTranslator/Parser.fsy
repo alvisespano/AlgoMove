@@ -1,11 +1,11 @@
 ﻿%{
 
-open AlgoMove. Transpiler.Absyn
+open AlgoMove.Transpiler.Absyn
 
 open FSharp.Common
 open FSharp.Common.Parsing.LexYacc
 open AlgoMove.Transpiler 
-open AlgoMove.Transpiler.Absyn
+open AlgoMove.Transpiler.Absyn.Move
 
 let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 
@@ -18,7 +18,7 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 %token MODULE STRUCT HAS COPY DROP KEY STORE PUBLIC ENTRY
        TU64 TBOOL TADDRESS AMP MUT
        BRA KET SQBRA SQKET CURBRA CURKET
-       COLON SEMICOLON DOT COMMA
+       COLON SEMICOLON DOT COMMA 
        MOVLOC CPYLOC STLOC CALL 
        LDU8 LDU128 LDU64 LDCONST LDTRUE LDFALSE
        BRANCH BRTRUE BRFALSE NOP
@@ -30,13 +30,13 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 %token EOF
 
 
-%type < AlgoMove.Transpiler.Absyn.Module > modulee
+%type < AlgoMove.Transpiler.Absyn.Move.program > program
 
-%start modulee
+%start program
 
 %%
 
-modulee: 
+program: 
     MODULE qid CURBRA
         structs
         funs

@@ -6,12 +6,12 @@ open FSharp.Text.Parsing.ParseHelpers
 # 1 "Parser.fsy"
 
 
-open AlgoMove. Transpiler.Absyn
+open AlgoMove.Transpiler.Absyn
 
 open FSharp.Common
 open FSharp.Common.Parsing.LexYacc
 open AlgoMove.Transpiler 
-open AlgoMove.Transpiler.Absyn
+open AlgoMove.Transpiler.Absyn.Move
 
 let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 
@@ -179,8 +179,8 @@ type tokenId =
     | TOKEN_error
 // This type is used to give symbolic names to token indexes, useful for error messages
 type nonTerminalId = 
-    | NONTERM__startmodulee
-    | NONTERM_modulee
+    | NONTERM__startprogram
+    | NONTERM_program
     | NONTERM_structs
     | NONTERM_structt
     | NONTERM_fields
@@ -375,8 +375,8 @@ let tokenTagToTokenId (tokenIdx:int) =
 /// This function maps production indexes returned in syntax errors to strings representing the non terminal that would be produced by that production
 let prodIdxToNonTerminal (prodIdx:int) = 
   match prodIdx with
-    | 0 -> NONTERM__startmodulee 
-    | 1 -> NONTERM_modulee 
+    | 0 -> NONTERM__startprogram 
+    | 1 -> NONTERM_program 
     | 2 -> NONTERM_structs 
     | 3 -> NONTERM_structs 
     | 4 -> NONTERM_structt 
@@ -654,13 +654,13 @@ let _fsyacc_immediateActions = [|65535us;49152us;65535us;65535us;65535us;65535us
 let _fsyacc_reductions = lazy [|
 # 655 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
-            let _1 = parseState.GetInput(1) :?>  AlgoMove.Transpiler.Absyn.Module  in
+            let _1 = parseState.GetInput(1) :?>  AlgoMove.Transpiler.Absyn.Move.program  in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
                       raise (FSharp.Text.Parsing.Accept(Microsoft.FSharp.Core.Operators.box _1))
                    )
-                 : 'gentype__startmodulee));
+                 : 'gentype__startprogram));
 # 664 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _2 = parseState.GetInput(2) :?> 'gentype_qid in
@@ -673,7 +673,7 @@ let _fsyacc_reductions = lazy [|
                                                        { qid = _2; structs = _4; funs = _5 } 
                    )
 # 43 "Parser.fsy"
-                 :  AlgoMove.Transpiler.Absyn.Module ));
+                 :  AlgoMove.Transpiler.Absyn.Move.program ));
 # 677 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_structt in
@@ -1748,5 +1748,5 @@ let tables : FSharp.Text.Parsing.Tables<_> =
     numTerminals = 80;
     productionToNonTerminalTable = _fsyacc_productionToNonTerminalTable  }
 let engine lexer lexbuf startState = tables.Interpret(lexer, lexbuf, startState)
-let modulee lexer lexbuf :  AlgoMove.Transpiler.Absyn.Module  =
+let program lexer lexbuf :  AlgoMove.Transpiler.Absyn.Move.program  =
     engine lexer lexbuf 0 :?> _

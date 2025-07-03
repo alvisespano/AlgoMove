@@ -30,6 +30,7 @@
 		  <Visible>true</Visible>
 		  <Link>Lexer.fs</Link>
 	  </Compile>
+	  <Compile Include="Gen.fs" />
 	  <Compile Include="Main.fs" />
   </ItemGroup>
 
@@ -41,7 +42,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\FSharp.Common\FSharp.Common.fsproj" />
   </ItemGroup>
-
-  <ItemGroup />
 
 </Project>

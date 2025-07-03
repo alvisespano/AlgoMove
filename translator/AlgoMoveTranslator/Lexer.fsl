@@ -87,7 +87,7 @@ and tokenize = parse
 	| "LdU64"		{ LDU64 }
 	| "LdU128"		{ LDU128 }
 	| "LdConst"		{ LDCONST }
-	
+	 
 	| "Pack"		{ PACK }	
 	| "Unpack"		{ UNPACK }
 
