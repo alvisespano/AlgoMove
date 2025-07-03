@@ -15,7 +15,7 @@ type token =
   | TBOOL
   | TADDRESS
   | AMP
-  | AMPMUT
+  | MUT
   | BRA
   | KET
   | SQBRA
@@ -29,8 +29,55 @@ type token =
   | MOVLOC
   | CPYLOC
   | STLOC
+  | CALL
+  | LDU8
+  | LDU128
+  | LDU64
+  | LDCONST
+  | LDTRUE
+  | LDFALSE
+  | BRANCH
+  | BRTRUE
+  | BRFALSE
+  | NOP
+  | ADD
+  | SUB
+  | MUL
+  | DIV
+  | MOD
+  | EQ
+  | NEQ
+  | LT
+  | LE
+  | GT
+  | GE
+  | BOR
+  | BAND
+  | OR
+  | AND
+  | XOR
+  | NOT
+  | SHL
+  | SHR
+  | POP
+  | ABORT
+  | READREF
+  | WRITEREF
+  | FREEZEREF
+  | RET
+  | IMMBORROWLOC
+  | MUTBORROWLOC
+  | IMMBORROWFIELD
+  | MUTBORROWFIELD
+  | IMMBORROWGLOBAL
+  | MUTBORROWGLOBAL
+  | PACK
+  | UNPACK
+  | EXISTS
+  | MOVETO
+  | MOVEFROM
   | ID of (System.String)
-  | UINT64 of (System.UInt64)
+  | NUM of (System.String)
 type tokenId = 
     | TOKEN_EOF
     | TOKEN_MODULE
@@ -46,7 +93,7 @@ type tokenId =
     | TOKEN_TBOOL
     | TOKEN_TADDRESS
     | TOKEN_AMP
-    | TOKEN_AMPMUT
+    | TOKEN_MUT
     | TOKEN_BRA
     | TOKEN_KET
     | TOKEN_SQBRA
@@ -60,8 +107,55 @@ type tokenId =
     | TOKEN_MOVLOC
     | TOKEN_CPYLOC
     | TOKEN_STLOC
+    | TOKEN_CALL
+    | TOKEN_LDU8
+    | TOKEN_LDU128
+    | TOKEN_LDU64
+    | TOKEN_LDCONST
+    | TOKEN_LDTRUE
+    | TOKEN_LDFALSE
+    | TOKEN_BRANCH
+    | TOKEN_BRTRUE
+    | TOKEN_BRFALSE
+    | TOKEN_NOP
+    | TOKEN_ADD
+    | TOKEN_SUB
+    | TOKEN_MUL
+    | TOKEN_DIV
+    | TOKEN_MOD
+    | TOKEN_EQ
+    | TOKEN_NEQ
+    | TOKEN_LT
+    | TOKEN_LE
+    | TOKEN_GT
+    | TOKEN_GE
+    | TOKEN_BOR
+    | TOKEN_BAND
+    | TOKEN_OR
+    | TOKEN_AND
+    | TOKEN_XOR
+    | TOKEN_NOT
+    | TOKEN_SHL
+    | TOKEN_SHR
+    | TOKEN_POP
+    | TOKEN_ABORT
+    | TOKEN_READREF
+    | TOKEN_WRITEREF
+    | TOKEN_FREEZEREF
+    | TOKEN_RET
+    | TOKEN_IMMBORROWLOC
+    | TOKEN_MUTBORROWLOC
+    | TOKEN_IMMBORROWFIELD
+    | TOKEN_MUTBORROWFIELD
+    | TOKEN_IMMBORROWGLOBAL
+    | TOKEN_MUTBORROWGLOBAL
+    | TOKEN_PACK
+    | TOKEN_UNPACK
+    | TOKEN_EXISTS
+    | TOKEN_MOVETO
+    | TOKEN_MOVEFROM
     | TOKEN_ID
-    | TOKEN_UINT64
+    | TOKEN_NUM
     | TOKEN_end_of_input
     | TOKEN_error
 type nonTerminalId = 
@@ -84,8 +178,14 @@ type nonTerminalId =
     | NONTERM_capab
     | NONTERM_qid
     | NONTERM_label
-    | NONTERM_loc
+    | NONTERM_tys
+    | NONTERM_index
     | NONTERM_opcode
+    | NONTERM_opcode_borrowfield
+    | NONTERM_opcode_typename
+    | NONTERM_opcodes_index
+    | NONTERM_opcodes_label
+    | NONTERM_opcodes_no_imm
 /// This function maps tokens to integer indexes
 val tagOfToken: token -> int
 

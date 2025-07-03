@@ -55,13 +55,54 @@ and tokenize = parse
 	| "bool"		{ TBOOL }
 	| "address"		{ TADDRESS }
 	| '&'			{ AMP }	
-	| "&mut"		{ AMPMUT }
+	| "mut"			{ MUT }
 
 	// opcodes
-	| "MovLoc"		{ MOVLOC }
-	| "CpyLoc"		{ CPYLOC }
-	| "StLoc"		{ STLOC } 
-    
+
+	| "MoveLoc"			{ MOVLOC }
+	| "CopyLoc"			{ CPYLOC }
+	| "StLoc"			{ STLOC } 
+
+	| "Add"			{ ADD }
+	| "Sub"			{ SUB }
+	| "Mul"			{ MUL }
+	| "Div"			{ DIV }
+	| "Mod"			{ MOD }
+	| "Eq"			{ EQ }
+	| "Neq"			{ NEQ }
+	| "Lt"			{ LT }
+	| "Le"			{ LE }
+	| "Gt"			{ GT }
+	| "Ge"			{ GE }
+	| "Pop"			{ POP }
+	| "Call"		{ CALL }
+	
+	| "ReadRef"		{ READREF }
+	| "WriteRef"	{ WRITEREF }
+	| "FreezeRef"	{ FREEZEREF }
+		
+	| "LdTrue"		{ LDTRUE }
+	| "LdFalse"		{ LDFALSE }
+	| "LdU8"		{ LDU8 }
+	| "LdU64"		{ LDU64 }
+	| "LdU128"		{ LDU128 }
+	| "LdConst"		{ LDCONST }
+	
+	| "Pack"		{ PACK }	
+	| "Unpack"		{ UNPACK }
+
+	| "Branch"		{ BRANCH }
+	| "BrTrue"		{ BRTRUE }
+	| "BrFalse"		{ BRFALSE }
+	| "Ret"			{ RET }
+	
+	| "ImmBorrowField"	{ IMMBORROWFIELD }
+	| "MutBorrowField"	{ MUTBORROWFIELD }
+	| "ImmBorrowGlobal"	{ IMMBORROWGLOBAL }
+	| "MutBorrowGlobal"	{ MUTBORROWGLOBAL }
+	| "ImmBorrowLoc"	{ IMMBORROWLOC } 
+	| "MutBorrowLoc"	{ MUTBORROWLOC }
+	    
 	// brakets
 	| '('			{ BRA }
 	| ')'			{ KET }
@@ -77,7 +118,7 @@ and tokenize = parse
 	| '.'			{ DOT }
 
 	// literals
-	| nat   	    		{ UINT64 (UInt64.Parse (lexeme lexbuf)) }
+	| nat   	    		{ NUM (lexeme lexbuf) }
 
 	// identifiers
 	| id 		            { ID (lexeme lexbuf) }

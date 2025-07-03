@@ -3,6 +3,7 @@
 open FSharp.Text
 open System
 open FSharp.Common.Parsing
+open FSharp.Common.Log
 open AlgoMoveTranspiler
 
 let Log = printfn
@@ -28,8 +29,13 @@ let main argv =
             let prg = load_and_parse_program "../../../../tests/borrow_field_order.mv.asm"
             Log "parsed program:\n\n%A" prg
             0
-        with SyntaxError (msg, lexbuf) -> Log "\nsyntax error: %s\nat token: %A\nlocation: %O" msg lexbuf.Lexeme lexbuf.EndPos; 1
-           | e                         -> Log "\nexception caught: %O" e; 2
+        with SyntaxError (msg, lexbuf) -> 
+               let u = lexbuf.EndPos 
+               Log "%s:%d:%d-%d: syntax error: %s" (IO.Path.GetFileName u.FileName) u.Line lexbuf.StartPos.Column u.Column msg
+               1
+
+             | e -> Log "\nexception caught: %O" e; 2
+
     Console.ReadLine () |> ignore
     r
 
