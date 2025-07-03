@@ -13,10 +13,10 @@ type M.program with
         match List.filter (fun (F : M.Fun) -> List.contains M.Entry F.quals) P.funs with
         | [] -> failwith "No entry function found"
         | [F] -> F
-        | Fs -> 
+        | F1 :: _ as Fs -> 
             match List.tryFind (fun (F : M.Fun) -> F.id = "main") Fs with
             | Some F -> F
-            | None -> List.head Fs
+            | None -> F1
 
 type M.Fun with
     member F.max_local_index =
@@ -28,10 +28,35 @@ type M.Fun with
             | M.StLoc i -> Some i
             | _ -> None) 
         |> function [] -> None 
-                   | l -> Some (uint (List.max l))
+                  | l -> Some (uint (List.max l))
             
 
-let emit_opcode (P : M.program) (op : M.opcode) : T.opcode list =
+module Pre =        
+
+    let private unique_labels (P : M.program) =
+        let p f (l, op) = 
+            let u l = sprintf "%s$%s" f l
+            let op' =
+                match op with
+                | M.Br (o, l) -> M.Br (o, u l)
+                | _ -> op
+            in
+                u l, op'
+        in
+            { P with funs = List.map (fun F -> { F with body = List.map (p F.id) F.body }) P.funs }
+   
+    let private remove_nops (P : M.program) =
+        let p (l, op) =
+            match op with
+            | M.Nop -> None
+            | _ -> Some (l, op)
+        in
+            { P with funs = List.map (fun F -> { F with body = List.choose p F.body }) P.funs }
+
+    let program P = P |> remove_nops |> unique_labels
+
+
+let private emit_opcode (P : M.program) (op : M.opcode) : T.opcode list =
   [
     match op with
 
@@ -75,11 +100,15 @@ let emit_opcode (P : M.program) (op : M.opcode) : T.opcode list =
     | M.Br (Some true, l) -> yield T.Bnz l
     | M.Br (Some false, l) -> yield T.Bz l
 
+    | M.Call (id, _, _) ->
+        let F = List.find (fun (F : M.Fun) -> F.id = id) P.funs 
+        yield T.Callsub (fst F.body.Head)
+
     | op -> yield T.UnsupportedOpcode op
 
 ]
 
-let emit_instrs P (instrs : M.instr list) : T.instr list = 
+let private emit_instrs P (instrs : M.instr list) : T.instr list = 
     [
         for l, mop in instrs do 
             match emit_opcode P mop with
@@ -90,7 +119,7 @@ let emit_instrs P (instrs : M.instr list) : T.instr list =
                     yield None, top
     ]
 
-let emit_fun P (F : M.Fun) : T.instr list =
+let private emit_fun P (F : M.Fun) : T.instr list =
     [
         let n = F.args.Length
         match F.body with
@@ -122,11 +151,14 @@ let emit_fun P (F : M.Fun) : T.instr list =
     ]
 
 let emit_program (P : M.program) : T.program =    
+    let P = Pre.program P
     [
         match P.find_main.body with
         | [] -> failwith "No body in main function"
         | (l1, _) :: _ -> 
             yield None, T.Callsub l1
+            yield None, T.PushInt 1UL
+            yield None, T.Return 
             for F in P.funs do
                 yield! emit_fun P F
     ]

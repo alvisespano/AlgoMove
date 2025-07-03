@@ -168,6 +168,7 @@ module Teal =
         | Concat
         | Err
         | Proto of uint * uint
+        | Return
 
 
     type instr = label option * opcode
@@ -197,6 +198,7 @@ module Teal =
         | BOr -> "|"
         | BAnd -> "&"
         | BNot -> "~"
+        | BXor -> "^"
         | Shl -> "shl"
         | Shr -> "shr"
         | Not -> "!"
@@ -242,6 +244,7 @@ module Teal =
         | Concat -> "concat"
         | Err -> "err"
         | Proto (a, b) -> sprintf "proto %d %d" a b
+        | Return -> "return"
 
     let pretty_instr ((lbl, op): instr) : string =
         match lbl with
