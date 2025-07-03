@@ -1,11 +1,11 @@
 ﻿%{
 
-open AlgoMoveTranspiler.Absyn
+open AlgoMove. Transpiler.Absyn
 
 open FSharp.Common
 open FSharp.Common.Parsing.LexYacc
-open AlgoMoveTranspiler 
-open AlgoMoveTranspiler.Absyn
+open AlgoMove.Transpiler 
+open AlgoMove.Transpiler.Absyn
 
 let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 
@@ -30,7 +30,7 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 %token EOF
 
 
-%type < AlgoMoveTranspiler.Absyn.Module > modulee
+%type < AlgoMove.Transpiler.Absyn.Module > modulee
 
 %start modulee
 

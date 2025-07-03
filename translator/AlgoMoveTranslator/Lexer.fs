@@ -1,4 +1,4 @@
-module AlgoMoveTranspiler.Lexer
+module AlgoMove.Transpiler.Lexer
 
 # 1 "Lexer.fsl"
  
@@ -8,8 +8,8 @@ open FSharp.Text.Lexing
 
 open FSharp.Common.Parsing
 open FSharp.Common.Parsing.LexYacc
-open AlgoMoveTranspiler.Absyn
-open AlgoMoveTranspiler.Parser
+open AlgoMove.Transpiler.Absyn
+open AlgoMove.Transpiler.Parser
 
 let trim c lexbuf = let s = lexeme lexbuf in s.TrimStart [|c|] 
 

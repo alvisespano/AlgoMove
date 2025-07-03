@@ -1,11 +1,11 @@
-module AlgoMoveTranspiler.Lexer
+module AlgoMove.Transpiler.Lexer
 
 open System
 open FSharp.Text.Lexing
 open FSharp.Common.Parsing
 open FSharp.Common.Parsing.LexYacc
-open AlgoMoveTranspiler.Absyn
-open AlgoMoveTranspiler.Parser/// Rule blockcomment
+open AlgoMove.Transpiler.Absyn
+open AlgoMove.Transpiler.Parser/// Rule blockcomment
 val blockcomment: lexbuf: LexBuffer<char> -> token
 /// Rule linecomment
 val linecomment: lexbuf: LexBuffer<char> -> token

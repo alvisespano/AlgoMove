@@ -1,10 +1,10 @@
-﻿module AlgoMoveTranspiler.Main
+﻿module AlgoMove.Transpiler.Main
 
 open FSharp.Text
 open System
 open FSharp.Common.Parsing
 open FSharp.Common.Log
-open AlgoMoveTranspiler
+open AlgoMove.Transpiler
 
 let Log = printfn
 

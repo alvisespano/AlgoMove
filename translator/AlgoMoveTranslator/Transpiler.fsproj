@@ -13,10 +13,10 @@
 	  <None Include="tests\struct_manipulation.mv.asm" />
 	  <Compile Include="Absyn.fs" />
 	  <FsYacc Include="Parser.fsy">
-		  <OtherFlags>--module AlgoMoveTranspiler.Parser</OtherFlags>
+		  <OtherFlags>--module AlgoMove.Transpiler.Parser</OtherFlags>
 	  </FsYacc>
 	  <FsLex Include="Lexer.fsl">
-		  <OtherFlags>--unicode --module AlgoMoveTranspiler.Lexer</OtherFlags>
+		  <OtherFlags>--unicode --module AlgoMove.Transpiler.Lexer</OtherFlags>
 	  </FsLex>
 	  <Compile Include="Parser.fsi">
 		  <Visible>true</Visible>

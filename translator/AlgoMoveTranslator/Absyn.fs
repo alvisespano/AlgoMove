@@ -1,5 +1,5 @@
 ﻿
-module AlgoMoveTranspiler.Absyn
+module AlgoMove.Transpiler.Absyn
 
 open FSharp.Text
 open System

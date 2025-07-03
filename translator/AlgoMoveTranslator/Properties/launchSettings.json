@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "Transpiler": {
+      "commandName": "Project"
+    }
+  }
+}
