@@ -1,18 +1,5 @@
 module deploy_address::loops_and_rec {
 
-	public entry fun main() {
-		
-	}
-
-	public fun f(x: u64) {
-
-	}
-
-	fun f(x: u64) {
-
-	}
-
-
 	public fun loop1() {
 		let i = 0;
 		while (i < 10) {

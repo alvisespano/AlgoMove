@@ -24,7 +24,7 @@ let parse_from_string what p s = parse_from_string __syntax_error s (sprintf "%s
 let main argv =
     let r =
         try
-            let mprg = load_and_parse_program "tests/build/Translation/bytecode_modules/loops_and_rec.mv.asm"
+            let mprg = load_and_parse_program "tests/build/Translation/bytecode_modules/rets.mv.asm"
             Report.info "parsed Move program:\n\n%A" mprg
             let tprg = Gen.emit_program mprg
             Report.info "generated TEAL program:\n\n%s" (Absyn.Teal.pretty_program tprg)

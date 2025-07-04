@@ -163,9 +163,11 @@ module Teal =
         | Balance
         | MinBalance
         | AssetHoldingGet of string * int
-        | AppLocalGet
-        | AppGlobalGet
         | AppLocalPut
+        | AppLocalGet
+        | AppLocalDel
+        | AppLocalGetEx
+        | AppGlobalGet
         | AppGlobalPut
 
         // Misc
@@ -173,10 +175,7 @@ module Teal =
         | Itob
         | Btoi
         | Len
-        | GetByte
-        | SetByte
-        | Substring
-        | Substring3
+        | Extract of uint16 * uint16
         | Concat
         | Err
         | Proto of uint * uint
@@ -190,7 +189,7 @@ module Teal =
     let pretty_opcode (op: opcode) : string =
         match op with
         | UnsupportedOpcode m -> sprintf "UNSUPPORTED(%A)" m
-        | PushInt n -> sprintf "pushint %A" n
+        | PushInt n -> sprintf "pushint %d" n
         | PushBytes b -> sprintf "pushbytes 0x%s" (System.BitConverter.ToString(b).Replace("-", ""))
         | Pop -> "pop"
         | Dup -> "dup"
@@ -241,18 +240,17 @@ module Teal =
         | Balance -> "balance"
         | MinBalance -> "min_balance"
         | AssetHoldingGet (s, i) -> sprintf "asset_holding_get %s %d" s i
-        | AppLocalGet -> "app_local_get"
-        | AppGlobalGet -> "app_global_get"
         | AppLocalPut -> "app_local_put"
+        | AppLocalGet -> "app_local_get"
+        | AppLocalDel -> "app_local_del"
+        | AppLocalGetEx -> "app_local_get_ex"
+        | AppGlobalGet -> "app_global_get"
         | AppGlobalPut -> "app_global_put"
         | Assert -> "assert"
         | Itob -> "itob"
         | Btoi -> "btoi"
         | Len -> "len"
-        | GetByte -> "getbyte"
-        | SetByte -> "setbyte"
-        | Substring -> "substring"
-        | Substring3 -> "substring3"
+        | Extract (s, l)-> sprintf "extract %d %d" s l
         | Concat -> "concat"
         | Err -> "err"
         | Proto (a, b) -> sprintf "proto %d %d" a b
