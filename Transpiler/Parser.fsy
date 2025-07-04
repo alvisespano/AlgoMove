@@ -16,9 +16,9 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 %token <System.String> ID
 
 %token MODULE STRUCT HAS COPY DROP KEY STORE PUBLIC ENTRY
-       TU64 TBOOL TADDRESS AMP MUT
+       U8 U64 U128 BOOL ADDRESS AMP MUT STAR
        BRA KET SQBRA SQKET CURBRA CURKET
-       COLON SEMICOLON DOT COMMA 
+       COLON DOT COMMA 
        MOVLOC CPYLOC STLOC CALL 
        LDU8 LDU128 LDU64 LDCONST LDTRUE LDFALSE
        BRANCH BRTRUE BRFALSE NOP
@@ -41,10 +41,12 @@ program:
         structs
         funs
     CURKET EOF                  { { qid = $2; structs = $4; funs = $5 } }
+  | MODULE qid CURBRA
+        funs
+    CURKET EOF                  { { qid = $2; structs = []; funs = $4 } }
 
 structs:
     structt                     { [$1] }
-/*  |                             { [] } */
   | structt structs             { $1 :: $2 }
   
 structt:
@@ -65,8 +67,8 @@ funs:
 funn:
     quals ID BRA args KET
     return_ty
-    CURBRA  body CURKET         { { quals = $1; id = $2; args = $4; ret = $6; body = $8 } }
-   
+    CURBRA body CURKET          { { quals = $1; id = $2; args = $4; ret = $6; body = $8 } }   
+
 arg:
     ID COLON ty                 { $1, $3 }
 
@@ -77,7 +79,6 @@ args:
 
 body:
     bodyline                    { [$1] }
-/*  |                             { [] } */
   | bodyline body               { $1 :: $2 }
 
 bodyline:
@@ -94,14 +95,20 @@ qual:
 return_ty:
     COLON ty                    { Some $2 }
   |                             { None }
+  | COLON ty_tuple              { Some (ty.Tuple $2) }    /* tuples can only be in return types */
 
 ty:
-    TU64                        { U64 }
-  | TBOOL                       { Bool }
-  | TADDRESS                    { Address }
-  | ID                          { StructName $1 }
-  | AMP ty                      { Ref $2 }
-  | AMP MUT ty                  { MutRef $3 }
+    U8                          { ty.U8 }
+  | U64                         { ty.U64 }
+  | BOOL                        { ty.Bool }
+  | ADDRESS                     { ty.Address }
+  | ID                          { ty.StructName $1 }
+  | AMP ty                      { ty.Ref $2 }
+  | AMP MUT ty                  { ty.MutRef $3 }
+
+ty_tuple:
+  | ty STAR ty                  { [$1; $3] }    /* disassambled tuple types have STAR not COMMA */
+  | ty STAR ty_tuple            { $1 :: $3 }
 
 capabs:
     capab                       { [$1] }
@@ -139,8 +146,7 @@ opcode:
 
   | opcode_borrowfield SQBRA index SQKET BRA ID DOT ID COLON ty KET   { BorrowField ($6, $8, $10) }
 
-  | CALL ID BRA tys KET                                     { Call ($2, $4, None) }
-  | CALL ID BRA tys KET COLON ty                            { Call ($2, $4, Some $7) }
+  | CALL ID BRA tys KET return_ty                           { Call ($2, $4, $6) }
   | LDU8 BRA NUM KET                                        { LdU8 (byte $3) }
   | LDU64 BRA NUM KET                                       { LdU64 (uint64 $3) }
   | LDU128 BRA NUM KET                                      { LdU128 (System.UInt128.Parse $3) }

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Transpiler": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Users\\spano\\Documents\\GitHub\\AlgoMoveBCRA\\Transpiler"
+    }
+  }
+}

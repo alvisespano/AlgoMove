@@ -16,11 +16,7 @@ let whitespace = [' ' '\t' ]
 let newline = ('\n' | "\r\n")
 let digit = ['0'-'9']
 let nat = digit+
-
-let idbody = ['a'-'z' 'A'-'Z' '0'-'9' '_']*['\'']*	
-let Uid = ['A'-'Z'] idbody
-let Lid = ['a'-'z' '_'] idbody
-let id = Uid | Lid
+let id = ['a'-'z' 'A'-'Z' '0'-'9' '_' '$']+	
 
 rule blockcomment = parse
     | "*/"				{ tokenize lexbuf }
@@ -51,11 +47,14 @@ and tokenize = parse
 	| "entry"		{ ENTRY }	
 
 	// types
-	| "u64"			{ TU64 }
-	| "bool"		{ TBOOL }
-	| "address"		{ TADDRESS }
+	| "u8"			{ U8 }
+	| "u64"			{ U64 }
+	| "u128"     	{ U128 }
+	| "bool"		{ BOOL }
+	| "address"		{ ADDRESS }
 	| '&'			{ AMP }	
 	| "mut"			{ MUT }
+	| "*"			{ STAR }
 
 	// opcodes
 
@@ -112,7 +111,6 @@ and tokenize = parse
 	| '}'			{ CURKET }
 
 	// punctuation
-	| ';'			{ SEMICOLON }
 	| ':'			{ COLON }
 	| ','			{ COMMA }
 	| '.'			{ DOT }

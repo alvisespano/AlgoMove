@@ -11,8 +11,13 @@ type M.program with
 
     member P.find_main =
         match List.filter (fun (F : M.Fun) -> List.contains M.Entry F.quals) P.funs with
-        | [] -> failwith "No entry function found"
+        | [] ->
+            let F = P.funs.Head
+            Report.warn "No entry function found. Picking first available: %s" F.id
+            F
+
         | [F] -> F
+
         | F1 :: _ as Fs -> 
             match List.tryFind (fun (F : M.Fun) -> F.id = "main") Fs with
             | Some F -> F
@@ -153,8 +158,9 @@ let private emit_fun P (F : M.Fun) : T.instr list =
 let emit_program (P : M.program) : T.program =    
     let P = Pre.program P
     [
-        match P.find_main.body with
-        | [] -> failwith "No body in main function"
+        let main = P.find_main
+        match main.body with
+        | [] -> unexpected "No body in main function: %s" __SOURCE_FILE__ __LINE__  main.id
         | (l1, _) :: _ -> 
             yield None, T.Callsub l1
             yield None, T.PushInt 1UL

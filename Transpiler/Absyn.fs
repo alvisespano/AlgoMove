@@ -10,7 +10,17 @@ module Move =
     type qid = id list
     type address = string
 
-    type ty = Bool | U64 | Address | StructName of id | Ref of ty | MutRef of ty 
+    [<RequireQualifiedAccess>]
+    type ty = 
+        | Bool
+        | U8
+        | U64
+        | U128
+        | Address
+        | StructName of id
+        | Ref of ty
+        | MutRef of ty 
+        | Tuple of ty list
 
     type field = id * ty
     type arg = field

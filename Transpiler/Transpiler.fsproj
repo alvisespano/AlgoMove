@@ -6,11 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-	  <None Include="tests\borrow_field_order.mv.asm" />
-	  <None Include="tests\loops_and_rec.mv.asm" />
-	  <None Include="tests\references.mv.asm" />
-	  <None Include="tests\struct_has_key.mv.asm" />
-	  <None Include="tests\struct_manipulation.mv.asm" />
 	  <Compile Include="Absyn.fs" />
 	  <FsYacc Include="Parser.fsy">
 		  <OtherFlags>--module AlgoMove.Transpiler.Parser</OtherFlags>
@@ -19,17 +14,18 @@
 		  <OtherFlags>--unicode --module AlgoMove.Transpiler.Lexer</OtherFlags>
 	  </FsLex>
 	  <Compile Include="Parser.fsi">
-		  <Visible>true</Visible>
+		  <Visible>false</Visible>
 		  <Link>Parser.fsi</Link>
 	  </Compile>
 	  <Compile Include="Parser.fs">
-		  <Visible>true</Visible>
+		  <Visible>false</Visible>
 		  <Link>Parser.fs</Link>
 	  </Compile>
 	  <Compile Include="Lexer.fs">
-		  <Visible>true</Visible>
+		  <Visible>false</Visible>
 		  <Link>Lexer.fs</Link>
 	  </Compile>
+	  <Compile Include="Report.fs" />
 	  <Compile Include="Gen.fs" />
 	  <Compile Include="Main.fs" />
   </ItemGroup>
@@ -40,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\FSharp.Common\FSharp.Common.fsproj" />
+    <ProjectReference Include="..\..\FSharp.Common\FSharp.Common.fsproj" />
   </ItemGroup>
 
 </Project>

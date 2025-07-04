@@ -11,11 +11,14 @@ type token =
   | STORE
   | PUBLIC
   | ENTRY
-  | TU64
-  | TBOOL
-  | TADDRESS
+  | U8
+  | U64
+  | U128
+  | BOOL
+  | ADDRESS
   | AMP
   | MUT
+  | STAR
   | BRA
   | KET
   | SQBRA
@@ -23,7 +26,6 @@ type token =
   | CURBRA
   | CURKET
   | COLON
-  | SEMICOLON
   | DOT
   | COMMA
   | MOVLOC
@@ -89,11 +91,14 @@ type tokenId =
     | TOKEN_STORE
     | TOKEN_PUBLIC
     | TOKEN_ENTRY
-    | TOKEN_TU64
-    | TOKEN_TBOOL
-    | TOKEN_TADDRESS
+    | TOKEN_U8
+    | TOKEN_U64
+    | TOKEN_U128
+    | TOKEN_BOOL
+    | TOKEN_ADDRESS
     | TOKEN_AMP
     | TOKEN_MUT
+    | TOKEN_STAR
     | TOKEN_BRA
     | TOKEN_KET
     | TOKEN_SQBRA
@@ -101,7 +106,6 @@ type tokenId =
     | TOKEN_CURBRA
     | TOKEN_CURKET
     | TOKEN_COLON
-    | TOKEN_SEMICOLON
     | TOKEN_DOT
     | TOKEN_COMMA
     | TOKEN_MOVLOC
@@ -174,6 +178,7 @@ type nonTerminalId =
     | NONTERM_qual
     | NONTERM_return_ty
     | NONTERM_ty
+    | NONTERM_ty_tuple
     | NONTERM_capabs
     | NONTERM_capab
     | NONTERM_qid
