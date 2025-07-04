@@ -182,9 +182,9 @@ type nonTerminalId =
     | NONTERM_capabs
     | NONTERM_capab
     | NONTERM_qid
-    | NONTERM_label
     | NONTERM_tys
     | NONTERM_index
+    | NONTERM_label
     | NONTERM_opcode
     | NONTERM_opcode_borrowfield
     | NONTERM_opcode_typename

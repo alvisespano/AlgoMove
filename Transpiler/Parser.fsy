@@ -67,7 +67,7 @@ funs:
 funn:
     quals ID BRA args KET
     return_ty
-    CURBRA body CURKET          { { quals = $1; id = $2; args = $4; ret = $6; body = $8 } }   
+    CURBRA body CURKET          { { quals = $1; id = $2; args = $4; ret = $6; body = List.toArray $8 } }   
 
 arg:
     ID COLON ty                 { $1, $3 }
@@ -78,11 +78,13 @@ args:
   | arg COMMA args              { $1 :: $3 }
 
 body:
-    bodyline                    { [$1] }
-  | bodyline body               { $1 :: $2 }
+    bodyline                    { $1 }
+  | bodyline body               { $1 @ $2 }
 
 bodyline:
-    label COLON opcode          { $1, $3 }
+    label COLON opcode          { [$3] }
+  | ID COLON                    { [] }          // skipped
+  | ty                          { [] }          // skipped
 
 quals:
     qual                        { [$1] }
@@ -124,10 +126,6 @@ qid:
     ID                          { [$1] }      
   | ID DOT qid                  { $1 :: $3 }
 
-label:
-    ID                          { $1 }
-  | NUM                         { $1 }            
-
 tys:
     ty                          { [$1] }
   | ty COMMA tys                { $1 :: $3 }
@@ -135,13 +133,17 @@ tys:
 index:
     NUM                         { byte $1 }
 
+label:
+    NUM                         { uint $1 }
+
 opcode:
-    ID COLON ty                                             { Nop }
+/*    ID COLON ty                                             { Nop }
   |                                                         { Nop }
+  */
 
   | opcodes_no_imm                                          { $1 }
   | opcodes_index SQBRA index SQKET BRA ID COLON ty KET     { $1 $3 }
-  | opcodes_label BRA label KET                             { $1 $3 }
+  | opcodes_label BRA label KET                               { $1 $3 }
   | opcode_typename SQBRA index SQKET BRA ID KET            { $1 $6 }
 
   | opcode_borrowfield SQBRA index SQKET BRA ID DOT ID COLON ty KET   { BorrowField ($6, $8, $10) }

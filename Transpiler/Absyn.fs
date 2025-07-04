@@ -2,13 +2,14 @@
 
 open System
 
-type label = string
 
 module Move =
 
     type id = string
     type qid = id list
     type address = string
+    type label = uint
+
 
     [<RequireQualifiedAccess>]
     type ty = 
@@ -77,9 +78,9 @@ module Move =
         | MoveTo of id
         | MoveFrom of id
 
-    type instr = label * opcode
+    //type instr = label * opcode
 
-    type Fun = { quals : qual list; id : id; args : arg list; ret : ty option; body : instr list }
+    type Fun = { quals : qual list; id : id; args : arg list; ret : ty option; body : opcode array }
 
     type Struct = { id : id; capabs : capab list; fields : field list }
 
@@ -89,6 +90,7 @@ module Move =
 module Teal =
    
     type scratch = uint8
+    type label = string Lazy
 
     type opcode =
         | UnsupportedOpcode of Move.opcode
@@ -221,10 +223,10 @@ module Teal =
         | Le -> "<="
         | Gt -> ">"
         | Ge -> ">="
-        | B l -> sprintf "b %s" l
-        | Bnz l -> sprintf "bnz %s" l
-        | Bz l -> sprintf "bz %s" l
-        | Callsub l -> sprintf "callsub %s" l
+        | B l -> sprintf "b %s" l.Value
+        | Bnz l -> sprintf "bnz %s" l.Value
+        | Bz l -> sprintf "bz %s" l.Value
+        | Callsub l -> sprintf "callsub %s" l.Value
         | Retsub -> "retsub"
         | Load s -> sprintf "load %d" s
         | Store s -> sprintf "store %d" s
@@ -257,9 +259,10 @@ module Teal =
         | Return -> "return"
 
     let pretty_instr ((lbl, op): instr) : string =
+        let op = pretty_opcode op
         match lbl with
-        | Some l -> sprintf "%s: %s" l (pretty_opcode op)
-        | None -> pretty_opcode op
+        | Some l when l.IsValueCreated -> sprintf "%s:\n\t%s" l.Value op
+        | _ -> sprintf "\t%s" op
 
     let pretty_program (prog: program) : string =
         prog
