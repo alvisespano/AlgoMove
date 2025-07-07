@@ -2,6 +2,7 @@
 module AlgoMove.Transpiler.Report
 
 open FSharp.Common.Log
+open System
 
 let private L = 
     let r = new console_logger ()
@@ -15,6 +16,7 @@ let warn fmt = L.warn Normal fmt
 
 let info fmt = L.msg Normal fmt
 
-let unsupported fmt = L.warn High fmt
+let unsupported fmt = L.log_unleveled "UNSUPPORTED" ConsoleColor.DarkMagenta fmt
+
 
 

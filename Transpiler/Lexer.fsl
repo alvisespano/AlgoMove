@@ -51,6 +51,7 @@ and tokenize = parse
 	| "store"		{ STORE }
 	| "public"		{ PUBLIC }	
 	| "entry"		{ ENTRY }	
+	| "native"		{ NATIVE }
 	| "use"			{ USE }
 
 	// types

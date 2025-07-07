@@ -6,7 +6,7 @@ open System
 module Move =
 
     type id = string
-    type qid = id list
+    type qid = id list * id
     type address = string
     type label = uint
 
@@ -22,11 +22,12 @@ module Move =
         | Ref of ty
         | MutRef of ty 
         | Tuple of ty list
+        | Cons of id * ty   // only types of LdConst use this
 
     type field = id * ty
     type arg = field
 
-    type qual = Public | Entry
+    type qual = Public | Entry | Native
 
     type capab = Key | Store | Copy | Drop
 
@@ -66,7 +67,7 @@ module Move =
         | LdU8 of byte
         | LdU64 of uint64
         | LdU128 of UInt128
-        | LdConst of index
+        | LdConst of ty * int list
         | Pack of id    // the struct typename must be local and cannot be a qid
         | Unpack of id
         | Br of bool option * label

@@ -15,7 +15,7 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 %token <System.String> NUM
 %token <System.String> ID
 
-%token MODULE STRUCT HAS COPY DROP KEY STORE PUBLIC ENTRY USE
+%token MODULE STRUCT HAS COPY DROP KEY STORE PUBLIC ENTRY USE NATIVE
        U8 U64 U128 BOOL ADDRESS AMP MUT STAR
        BRA KET SQBRA SQKET CURBRA CURKET
        COLON DOT COMMA COLON2 SEMICOLON
@@ -75,13 +75,16 @@ fields:
 
 funs:
     funn                        { [$1] }
-/*  |                             { [] }*/
   | funn funs                   { $1 :: $2 }
  
 funn:
     quals ID BRA args KET
     return_ty
-    CURBRA body CURKET          { { quals = $1; id = $2; args = $4; ret = $6; body = List.toArray $8 } }   
+    optbody                     { { quals = $1; id = $2; args = $4; ret = $6; body = List.toArray $7 } }   
+
+optbody:
+    CURBRA body CURKET          { $2 }
+  |                             { [] }
 
 arg:
     ID COLON ty                 { $1, $3 }
@@ -107,6 +110,7 @@ quals:
 qual:
     PUBLIC                      { Public }
   | ENTRY                       { Entry }
+  | NATIVE  				    { Native }    
 
 return_ty:
     COLON ty                    { Some $2 }
@@ -118,7 +122,7 @@ ty:
   | U64                         { ty.U64 }
   | BOOL                        { ty.Bool }
   | ADDRESS                     { ty.Address }
-  | ID                          { ty.StructName $1 }
+  | ID                          { ty.Typename $1 }
   | AMP ty                      { ty.Ref $2 }
   | AMP MUT ty                  { ty.MutRef $3 }
 
@@ -137,9 +141,16 @@ capab:
   | STORE                       { Store }
  
 qid:
-    ID                          { [$1] }      
-  | ID DOT qid                  { $1 :: $3 }
-  | ID COLON2 qid               { $1 :: $3 }
+    qid_parts                   { let l = List.rev $1 in List.rev (List.tail l), List.head l }
+
+qid_parts:
+    qid_part                          { [$1] }      
+  | qid_part DOT qid_parts                  { $1 :: $3 }
+  | qid_part COLON2 qid_parts               { $1 :: $3 }
+
+qid_part:
+    ID                           { $1 } 
+  | NUM							 { $1 }
 
 tys:
     ty                          { [$1] }
@@ -151,24 +162,37 @@ index:
 label:
     NUM                         { uint $1 }
 
-opcode:
-/*    ID COLON ty                                             { Nop }
-  |                                                         { Nop }
-  */
+argtys:
+    tys                         { $1 }
+  |                             { [] }
 
-  | opcodes_no_imm                                          { $1 }
+
+
+opcode:
+    opcodes_no_imm                                          { $1 }
   | opcodes_index SQBRA index SQKET BRA ID COLON ty KET     { $1 $3 }
-  | opcodes_label BRA label KET                               { $1 $3 }
+  | opcodes_label BRA label KET                             { $1 $3 }
   | opcode_typename SQBRA index SQKET BRA ID KET            { $1 $6 }
 
   | BORROWFIELD SQBRA index SQKET BRA ID DOT ID COLON ty KET   { BorrowField ($6, $8, $10) }
 
-  | CALL qid BRA tys KET return_ty                          { Call ($2, $4, $6) }
+  | CALL qid BRA argtys KET return_ty                       { Call ($2, $4, $6) }
   | LDU8 BRA NUM KET                                        { LdU8 (byte $3) }
   | LDU64 BRA NUM KET                                       { LdU64 (uint64 $3) }
   | LDU128 BRA NUM KET                                      { LdU128 (System.UInt128.Parse $3) }
+  | LDCONST SQBRA NUM SQKET BRA const KET                   { LdConst $6 }   
 
+const:
+    const_ty COLON SQBRA nums SQKET    { $1, $4 }
+
+const_ty:
+    ID						    { ty.Typename ($1.ToLower()) }   
+  | ID BRA const_ty KET         { ty.Cons ($1.ToLower(), $3) } 
  
+nums:
+    NUM                         { [int $1] }
+  | NUM COMMA nums              { int $1 :: $3 }
+
 opcode_typename:
   | PACK                        { Pack }
   | UNPACK                      { Unpack }
@@ -183,7 +207,6 @@ opcodes_index:
   | CPYLOC                      { CpyLoc }
   | STLOC                       { StLoc }
   | BORROWLOC                   { BorrowLoc }
-  | LDCONST                     { LdConst }   
 
 opcodes_label:
     BRANCH                      { fun l -> Br (None, l) }  

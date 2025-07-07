@@ -12,6 +12,7 @@ type token =
   | PUBLIC
   | ENTRY
   | USE
+  | NATIVE
   | U8
   | U64
   | U128
@@ -92,6 +93,7 @@ type tokenId =
     | TOKEN_PUBLIC
     | TOKEN_ENTRY
     | TOKEN_USE
+    | TOKEN_NATIVE
     | TOKEN_U8
     | TOKEN_U64
     | TOKEN_U128
@@ -175,6 +177,7 @@ type nonTerminalId =
     | NONTERM_fields
     | NONTERM_funs
     | NONTERM_funn
+    | NONTERM_optbody
     | NONTERM_arg
     | NONTERM_args
     | NONTERM_body
@@ -187,10 +190,16 @@ type nonTerminalId =
     | NONTERM_capabs
     | NONTERM_capab
     | NONTERM_qid
+    | NONTERM_qid_parts
+    | NONTERM_qid_part
     | NONTERM_tys
     | NONTERM_index
     | NONTERM_label
+    | NONTERM_argtys
     | NONTERM_opcode
+    | NONTERM_const
+    | NONTERM_const_ty
+    | NONTERM_nums
     | NONTERM_opcode_typename
     | NONTERM_opcodes_index
     | NONTERM_opcodes_label

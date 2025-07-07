@@ -36,17 +36,16 @@ type M.program with
             try
                 let S = P.struct_by_name s
                 List.sumBy (fun (_, ty) -> P.len_of_ty ty) S.fields |> uint16
-            with _ -> Report.unsupported "Typename %s is a generic type. Defaulting length to %d bytes" s generic_field_length
+            with _ -> Report.unsupported "typename %s is a generic type. Defaulting length to %d bytes" s generic_field_length
                       uint16 generic_field_length
 
         | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Type %A should not appear in structs" ty
-
 
     member P.find_main =
         match List.filter (fun (F : M.Fun) -> List.contains M.Entry F.quals) P.funs with
         | [] ->
             let F = P.funs.Head
-            Report.warn "No entry function found. Picking first available: %s" F.id
+            Report.warn "no entry function found. Picking first available: %s" F.id
             F
 
         | [F] -> F
@@ -126,11 +125,12 @@ let private emit_opcode ctx (P : M.program) (op : M.opcode) : T.opcode list =
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
 
-        | M.Call ([id], _, _) ->
+        | M.Call (([], id), _, _) ->
             let F = List.find (fun (F : M.Fun) -> F.id = id) P.funs 
             yield T.Callsub (starting_label_of_fun F)
 
         // TODO implement Call to natives
+        // TODO implement Call to qid
         
 
         | M.ReadRef -> yield T.Callsub (lazy "ReadRef")         // TODO include read_ref/write_ref functions in emitted code
@@ -242,11 +242,38 @@ let private emit_fun P (F : M.Fun) : T.instr list =
         yield None, T.Retsub
     ]
 
-let emit_program (P : M.program) : T.program =    
+
+let rec emit_module (P : M.program) =       
+    // do imports BEFORE
+    let imports =   
+        [
+            for qid in P.imports do
+                yield! import_and_emit_module qid
+        ]
+    [
+        // functions
+        for F in P.funs do
+            yield! emit_fun P F
+        // append imports
+        yield! imports
+    ]
+
+and import_and_emit_module (_, id) =
+    Report.info "importing module '%s'..." id
+    let filename = sprintf "%s.mv.asm" id
+    try
+        let P = Parsing.load_and_parse_module filename
+        emit_module P
+    with :? System.IO.FileNotFoundException as e ->
+        Report.error "import file not found: %s" filename
+        []
+        
+
+
+let emit_program (P : M.program) : T.program =       
     [
         yield None, T.Callsub (starting_label_of_fun P.find_main)
         yield None, T.PushInt 1UL
         yield None, T.Return 
-        for F in P.funs do
-            yield! emit_fun P F
+        yield! emit_module P
     ]
