@@ -84,6 +84,7 @@ and tokenize = parse
 	| "Pop"			{ POP }
 	| "Call"		{ CALL }
 	| "Abort"		{ ABORT }
+	| "VecLen"		{ VECLEN }
 	
 	| "ReadRef"		{ READREF }
 	| "WriteRef"	{ WRITEREF }

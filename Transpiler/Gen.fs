@@ -118,6 +118,7 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) : T.opcode list =
         | M.Ge -> yield T.Ge
         | M.Pop -> yield T.Pop
         | M.Abort -> yield T.Err
+        | M.VecLen _ -> yield T.Len
         
         | M.Ret ->  yield T.B ctx.exit_label
                 
@@ -248,29 +249,28 @@ let private emit_fun P (F : M.Fun) : T.instr list =
     ]
 
 
+let private import_cache = System.Collections.Generic.Dictionary<M.id, T.instr list>()
+
+
 let rec emit_module (P : M.Module) =           
-    let imports =   // do imports BEFORE
-        [
-            for qid in P.imports do
-                yield! import_and_emit_module qid
-        ]
+    // do imports BEFORE
+    for qid in P.imports do
+        import_module qid
     [
         // functions
         for F in P.funs do
             yield! emit_fun P F
-        // append imports
-        yield! imports
     ]
 
-and import_and_emit_module (_, id) =
-    Report.info "importing module '%s'..." id
-    let filename = sprintf "%s.mv.asm" id
-    try
-        let P = Parsing.load_and_parse_module filename
-        emit_module P
-    with :? System.IO.FileNotFoundException as e ->
-        Report.error "import file not found: %s" filename
-        []
+and import_module (_, id) =
+    if not (import_cache.ContainsKey id) then
+        Report.info "importing module '%s'..." id
+        let filename = sprintf "%s.mv.asm" id
+        try
+            let P = Parsing.load_and_parse_module filename
+            import_cache.[id] <- emit_module P
+        with :? System.IO.FileNotFoundException as e ->
+            Report.error "import file not found: %s" filename
         
 
 
@@ -280,6 +280,9 @@ let emit_program (P : M.Module) : T.program =
         yield None, T.PushInt 1UL
         yield None, T.Return 
         yield! emit_module P
+        // append imports
+        for p in import_cache do
+            yield! p.Value
     ]
 
 // TODO emit TEAL preamble like the one below

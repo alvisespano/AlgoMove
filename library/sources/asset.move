@@ -3,7 +3,6 @@ module algomove::asset {
 	use algomove::opcode as op;
 	use algomove::transaction as txn;
 	use algomove::utils;
-	use std::string::{String};
 
 
 	struct Asset<phantom AssetType> has store {
@@ -12,7 +11,7 @@ module algomove::asset {
 		owner: address
 	}
 	
-	public fun create<AssetType>(acc: &signer, total: u64, decimals: u64, default_frozen: bool, short_name: String): Asset<AssetType> {
+	public fun create<AssetType>(acc: &signer, total: u64, decimals: u64, default_frozen: bool, short_name: vector<u8>): Asset<AssetType> {
 		let sender = utils::address_of_signer(acc);
 		let name = utils::name_of<AssetType>();
 		txn::asset_config(sender, total, decimals, default_frozen, name, short_name);

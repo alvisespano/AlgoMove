@@ -85,6 +85,7 @@ module Move =
         | Exists of id
         | MoveTo of id
         | MoveFrom of id
+        | VecLen of index
 
     //type instr = label * opcode
 

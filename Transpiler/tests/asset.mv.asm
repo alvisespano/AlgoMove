@@ -1,6 +1,5 @@
 // Move bytecode v7
 module aaa.asset {
-use 0000000000000000000000000000000000000000000000000000000000000001::string;
 use 0000000000000000000000000000000000000000000000000000000000000aaa::utils;
 use 0000000000000000000000000000000000000000000000000000000000000aaa::transaction;
 use 0000000000000000000000000000000000000000000000000000000000000aaa::opcode;
@@ -19,22 +18,22 @@ B0:
 	2: ReadRef
 	3: Ret
 }
-public create<AssetType>(acc: &signer, total: u64, decimals: u64, default_frozen: bool, short_name: String): Asset<AssetType> /* def_idx: 1 */ {
+public create<AssetType>(acc: &signer, total: u64, decimals: u64, default_frozen: bool, short_name: vector<u8>): Asset<AssetType> /* def_idx: 1 */ {
 L5:	sender: address
-L6:	name: String
+L6:	name: vector<u8>
 B0:
 	0: MoveLoc[0](acc: &signer)
 	1: Call utils::address_of_signer(&signer): address
 	2: StLoc[5](sender: address)
-	3: Call utils::name_of<AssetType>(): String
-	4: StLoc[6](name: String)
+	3: Call utils::name_of<AssetType>(): vector<u8>
+	4: StLoc[6](name: vector<u8>)
 	5: CopyLoc[5](sender: address)
 	6: CopyLoc[1](total: u64)
 	7: MoveLoc[2](decimals: u64)
 	8: MoveLoc[3](default_frozen: bool)
-	9: MoveLoc[6](name: String)
-	10: MoveLoc[4](short_name: String)
-	11: Call transaction::asset_config(address, u64, u64, bool, String, String)
+	9: MoveLoc[6](name: vector<u8>)
+	10: MoveLoc[4](short_name: vector<u8>)
+	11: Call transaction::asset_config(address, u64, u64, bool, vector<u8>, vector<u8>)
 	12: Call opcode::txn_CreatedAssetID(): u64
 	13: MoveLoc[1](total: u64)
 	14: MoveLoc[5](sender: address)

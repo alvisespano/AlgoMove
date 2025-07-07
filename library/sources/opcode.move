@@ -1,6 +1,6 @@
 module algomove::opcode {
 
-	use std::string::{String};
+	//use std::string::{vector<u8>};
 
 	// transactions
 	
@@ -15,17 +15,17 @@ module algomove::opcode {
 	native public fun itxn_submit();
 	// header fields
 	native public fun itxn_field_Fee(x: u64);
-	native public fun itxn_field_Type(x: String);
+	native public fun itxn_field_Type(x: vector<u8>);
 	native public fun itxn_field_Sender(x: address);
 	native public fun itxn_field_Receiver(x: address);
-	native public fun itxn_field_GenesisID(x: String);	// optional
+	native public fun itxn_field_GenesisID(x: vector<u8>);	// optional
 	native public fun itxn_field_Amount(x: u64);
 	// asset config and params
 	native public fun itxn_field_Total(x: u64);
 	native public fun itxn_field_Decimals(x: u64);
 	native public fun itxn_field_DefaultFrozen(x: bool);
-	native public fun itxn_field_UnitName(x: String);	// optional
-	native public fun itxn_field_Name(x: String);	// optional
+	native public fun itxn_field_UnitName(x: vector<u8>);	// optional
+	native public fun itxn_field_Name(x: vector<u8>);	// optional
 	// asset transfer
 	native public fun itxn_field_XferAsset(x: u64);
 	native public fun itxn_field_AssetAmount(x: u64);
@@ -48,7 +48,7 @@ module algomove::opcode {
 	native public fun balance(acc: address): u64;
 	native public fun asset_holding_get_AssetBalance(addr: address, id: u64): u64;
 	native public fun asset_holding_get_AssetFrozen(addr: address, id: u64): bool;
-	native public fun asset_params_get_AssetName(id: u64): String;
+	native public fun asset_params_get_AssetName(id: u64): vector<u8>;
 
 	// local state
 

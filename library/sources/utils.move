@@ -1,8 +1,7 @@
 module algomove::utils {
     
     use algomove::opcode as op;
-  	use std::string::{String};
-
+  	
 
     // misc stuff
     //
@@ -24,7 +23,7 @@ module algomove::utils {
 	// misc natives
 	//
 
-	native public fun name_of<T>(): String;
+	native public fun name_of<T>(): vector<u8>;
 	native public fun address_of_signer(s: &signer) : address;
 	native public fun bytes_of_address(a: address): vector<u8>;
 

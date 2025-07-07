@@ -1,14 +1,13 @@
 
 module algomove::transaction {
 
-	use std::string::{String, utf8};
 	use algomove::opcode as op;
 
 	const DEFAULT_FEE: u64 = 100;
 
 	// transaction initializers (require an explicit op::itxn_submit() call afterwards)
 
-	public fun init_header(sender: address, fee: u64, ty: String) {
+	public fun init_header(sender: address, fee: u64, ty: vector<u8>) {
 		op::itxn_begin();
 		op::itxn_field_Fee(fee);
 		op::itxn_field_Type(ty);
@@ -16,13 +15,13 @@ module algomove::transaction {
 	}
 
 	public fun init_pay(sender: address, receiver: address, amount: u64) {
-		init_header(sender, DEFAULT_FEE, utf8(b"pay"));
+		init_header(sender, DEFAULT_FEE, b"pay");
 		op::itxn_field_Receiver(receiver);
 		op::itxn_field_Amount(amount);
 	}
 
-	public fun init_asset_config(sender: address, total: u64, decimals: u64, default_frozen: bool,  name: String, short_name: String) {		
-		init_header(sender, DEFAULT_FEE, utf8(b"acfg"));
+	public fun init_asset_config(sender: address, total: u64, decimals: u64, default_frozen: bool,  name: vector<u8>, short_name: vector<u8>) {		
+		init_header(sender, DEFAULT_FEE, b"acfg");
 		op::itxn_field_Total(total);
 		op::itxn_field_Decimals(decimals);
 		op::itxn_field_DefaultFrozen(default_frozen);
@@ -31,7 +30,7 @@ module algomove::transaction {
 	}
 
 	public fun init_asset_transfer(sender: address, id: u64, receiver: address) {
-		init_header(sender, DEFAULT_FEE, utf8(b"axfer"));
+		init_header(sender, DEFAULT_FEE, b"axfer");
 		op::itxn_field_XferAsset(id);
 		op::itxn_field_AssetReceiver(receiver);
 	}
@@ -43,7 +42,7 @@ module algomove::transaction {
 		op::itxn_submit();
 	}
 
-	public fun asset_config(sender: address, total: u64, decimals: u64, default_frozen: bool, name: String, short_name: String) {
+	public fun asset_config(sender: address, total: u64, decimals: u64, default_frozen: bool, name: vector<u8>, short_name: vector<u8>) {
 		init_asset_config(sender, total, decimals, default_frozen, name, short_name);
 		op::itxn_submit();
 	}

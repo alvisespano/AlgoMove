@@ -24,7 +24,7 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
        BRANCH BRTRUE BRFALSE NOP
        ADD SUB MUL DIV MOD EQ NEQ LT LE GT GE BOR BAND OR AND XOR NOT SHL SHR POP ABORT
        READREF WRITEREF FREEZEREF 
-       RET
+       RET VECLEN
        BORROWLOC BORROWFIELD BORROWGLOBAL 
        PACK UNPACK EXISTS MOVETO MOVEFROM
 %token EOF
@@ -181,6 +181,7 @@ opcode:
   | LDU64 BRA NUM KET                                       { LdU64 (uint64 $3) }
   | LDU128 BRA NUM KET                                      { LdU128 (System.UInt128.Parse $3) }
   | LDCONST SQBRA NUM SQKET BRA const KET                   { LdConst $6 }   
+  | VECLEN BRA index KET                                    { VecLen $3 }
 
 const:
     const_ty COLON SQBRA nums SQKET    { ty.of_const_ty $1, $4 }
