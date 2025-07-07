@@ -15,4 +15,6 @@ let warn fmt = L.warn Normal fmt
 
 let info fmt = L.msg Normal fmt
 
+let unsupported fmt = L.warn High fmt
+
 

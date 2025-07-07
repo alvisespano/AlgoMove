@@ -18,7 +18,7 @@ module Move =
         | U64
         | U128
         | Address
-        | StructName of id
+        | Typename of id
         | Ref of ty
         | MutRef of ty 
         | Tuple of ty list
@@ -58,7 +58,7 @@ module Move =
         | Ge
         | Pop
         | Abort
-        | Call of id * ty list * ty option
+        | Call of qid * ty list * ty option
         | ReadRef
         | WriteRef
         | FreezeRef
@@ -84,7 +84,7 @@ module Move =
 
     type Struct = { id : id; capabs : capab list; fields : field list }
 
-    type program = { qid : qid; structs : Struct list; funs : Fun list }
+    type program = { modulename : qid; imports: qid list; structs : Struct list; funs : Fun list }
 
 
 module Teal =

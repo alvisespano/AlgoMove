@@ -15,17 +15,17 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 %token <System.String> NUM
 %token <System.String> ID
 
-%token MODULE STRUCT HAS COPY DROP KEY STORE PUBLIC ENTRY
+%token MODULE STRUCT HAS COPY DROP KEY STORE PUBLIC ENTRY USE
        U8 U64 U128 BOOL ADDRESS AMP MUT STAR
        BRA KET SQBRA SQKET CURBRA CURKET
-       COLON DOT COMMA 
+       COLON DOT COMMA COLON2 SEMICOLON
        MOVLOC CPYLOC STLOC CALL 
        LDU8 LDU128 LDU64 LDCONST LDTRUE LDFALSE
        BRANCH BRTRUE BRFALSE NOP
        ADD SUB MUL DIV MOD EQ NEQ LT LE GT GE BOR BAND OR AND XOR NOT SHL SHR POP ABORT
        READREF WRITEREF FREEZEREF 
        RET
-       IMMBORROWLOC MUTBORROWLOC IMMBORROWFIELD MUTBORROWFIELD IMMBORROWGLOBAL MUTBORROWGLOBAL
+       BORROWLOC BORROWFIELD BORROWGLOBAL 
        PACK UNPACK EXISTS MOVETO MOVEFROM
 %token EOF
 
@@ -38,23 +38,37 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 
 program: 
     MODULE qid CURBRA
+        imports
         structs
         funs
-    CURKET EOF                  { { qid = $2; structs = $4; funs = $5 } }
-  | MODULE qid CURBRA
-        funs
-    CURKET EOF                  { { qid = $2; structs = []; funs = $4 } }
+    CURKET EOF                  { { modulename = $2; imports = $4; structs = $5; funs = $6 } }
+
+imports:
+    imports_                    { $1 }
+  |                             { [] }
+
+imports_:
+  | import                      { [$1] }
+  | import imports_             { $1 :: $2 }
+
+import:
+    USE qid SEMICOLON           { $2 }
 
 structs:
+    structs_                    { $1 }
+  |                             { [] }
+
+structs_:
     structt                     { [$1] }
-  | structt structs             { $1 :: $2 }
+  | structt structs_            { $1 :: $2 }
   
 structt:
-    STRUCT ID CURBRA
-    fields CURKET               { { id = $2; capabs = []; fields = $4 } }
-  | STRUCT ID
-    HAS capabs CURBRA
-    fields CURKET               { { id = $2; capabs = $4; fields = $6 } }
+    STRUCT ID has_capabs CURBRA
+    fields CURKET               { { id = $2; capabs = $3; fields = $5 } }
+
+has_capabs: 
+    HAS capabs                  { $2 }
+  |                             { [] }
 
 fields:
     args                        { $1 }
@@ -125,6 +139,7 @@ capab:
 qid:
     ID                          { [$1] }      
   | ID DOT qid                  { $1 :: $3 }
+  | ID COLON2 qid               { $1 :: $3 }
 
 tys:
     ty                          { [$1] }
@@ -146,22 +161,18 @@ opcode:
   | opcodes_label BRA label KET                               { $1 $3 }
   | opcode_typename SQBRA index SQKET BRA ID KET            { $1 $6 }
 
-  | opcode_borrowfield SQBRA index SQKET BRA ID DOT ID COLON ty KET   { BorrowField ($6, $8, $10) }
+  | BORROWFIELD SQBRA index SQKET BRA ID DOT ID COLON ty KET   { BorrowField ($6, $8, $10) }
 
-  | CALL ID BRA tys KET return_ty                           { Call ($2, $4, $6) }
+  | CALL qid BRA tys KET return_ty                          { Call ($2, $4, $6) }
   | LDU8 BRA NUM KET                                        { LdU8 (byte $3) }
   | LDU64 BRA NUM KET                                       { LdU64 (uint64 $3) }
   | LDU128 BRA NUM KET                                      { LdU128 (System.UInt128.Parse $3) }
 
-opcode_borrowfield:
-  | IMMBORROWFIELD          { BorrowField }
-  | MUTBORROWFIELD          { BorrowField }
-  
+ 
 opcode_typename:
   | PACK                        { Pack }
   | UNPACK                      { Unpack }
-  | IMMBORROWGLOBAL             { BorrowGlobal }
-  | MUTBORROWGLOBAL             { BorrowGlobal }
+  | BORROWGLOBAL                { BorrowGlobal }
   | EXISTS                      { Exists }
   | MOVETO                      { MoveTo }
   | MOVEFROM                    { MoveFrom }
@@ -171,8 +182,7 @@ opcodes_index:
     MOVLOC                      { MovLoc }  
   | CPYLOC                      { CpyLoc }
   | STLOC                       { StLoc }
-  | IMMBORROWLOC                { BorrowLoc }
-  | MUTBORROWLOC                { BorrowLoc }
+  | BORROWLOC                   { BorrowLoc }
   | LDCONST                     { LdConst }   
 
 opcodes_label:

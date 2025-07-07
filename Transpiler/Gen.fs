@@ -6,6 +6,11 @@ open FSharp.Common
 module M = Move
 module T = Teal
 
+let generic_field_length = 8 // default length for fields with generic types
+
+// type augmentations
+//
+
 type M.program with
     member P.struct_by_name id = P.structs.[int <| P.index_of_struct id]
 
@@ -27,9 +32,12 @@ type M.program with
         | M.ty.U64 -> 8us
         | M.ty.U128 -> 16us
         | M.ty.Address -> 32us
-        | M.ty.StructName s ->
-            let S = P.struct_by_name s
-            List.sumBy (fun (_, ty) -> P.len_of_ty ty) S.fields |> uint16
+        | M.ty.Typename s ->
+            try
+                let S = P.struct_by_name s
+                List.sumBy (fun (_, ty) -> P.len_of_ty ty) S.fields |> uint16
+            with _ -> Report.unsupported "Typename %s is a generic type. Defaulting length to %d bytes" s generic_field_length
+                      uint16 generic_field_length
 
         | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Type %A should not appear in structs" ty
 
@@ -58,6 +66,10 @@ type M.Fun with
             | _ -> None) 
         |> function [||] -> None 
                   | l -> Some (uint (Array.max l))
+
+
+// context and labels
+//
             
 type ctx = {
     exit_label : T.label
@@ -67,6 +79,10 @@ type ctx = {
 let touch_label (L : T.label) = ignore <| L.Force (); L
 
 let starting_label_of_fun (F : M.Fun) = lazy F.id |> touch_label
+
+
+// transpiler functions
+//
 
 let private emit_opcode ctx (P : M.program) (op : M.opcode) : T.opcode list =
         
@@ -110,7 +126,7 @@ let private emit_opcode ctx (P : M.program) (op : M.opcode) : T.opcode list =
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
 
-        | M.Call (id, _, _) ->
+        | M.Call ([id], _, _) ->
             let F = List.find (fun (F : M.Fun) -> F.id = id) P.funs 
             yield T.Callsub (starting_label_of_fun F)
 
@@ -130,7 +146,7 @@ let private emit_opcode ctx (P : M.program) (op : M.opcode) : T.opcode list =
             if n > 0u then
                 for _, ty in S.fields do
                     yield T.Uncover (n - 1u)
-                    if ty.IsStructName then yield T.Itob
+                    if ty.IsTypename then yield T.Itob
                 for i = 1u to n do
                     yield T.Concat
 
@@ -141,12 +157,12 @@ let private emit_opcode ctx (P : M.program) (op : M.opcode) : T.opcode list =
                 let d = P.offset_of_field id x
                 let l = P.len_of_ty ty
                 yield T.Extract (d, l)
-                if ty.IsStructName then yield T.Btoi
+                if ty.IsTypename then yield T.Btoi
                 yield T.Swap
             yield T.Pop
 
         | M.BorrowField (sid, fid, fty) ->
-            let d = P.offset_of_field sid fid ||| (if fty.IsStructName then 0us else 0x8000us)
+            let d = P.offset_of_field sid fid ||| (if fty.IsTypename then 0us else 0x8000us)
             let l = P.len_of_ty fty
             let uint16_to_bytes (n : uint16) = [| byte (n >>> 8); byte (n &&& 0x00ffus) |]
             yield T.PushBytes [| yield! uint16_to_bytes d; yield! uint16_to_bytes l |]
@@ -176,6 +192,9 @@ let private emit_opcode ctx (P : M.program) (op : M.opcode) : T.opcode list =
             yield T.AppLocalGet
             yield T.Cover 2u
             yield T.AppLocalDel
+
+        | _ -> yield T.UnsupportedOpcode op 
+
 
     ]
 

@@ -17,6 +17,8 @@ let newline = ('\n' | "\r\n")
 let digit = ['0'-'9']
 let nat = digit+
 let id = ['a'-'z' 'A'-'Z' '0'-'9' '_' '$']+	
+let mut = "Imm" | "Mut"
+let generic = "Generic"?
 
 rule blockcomment = parse
     | "*/"				{ tokenize lexbuf }
@@ -26,6 +28,10 @@ rule blockcomment = parse
 and linecomment = parse
     | newline           { newline lexbuf; tokenize lexbuf }
     | _                 { linecomment lexbuf }
+
+and skip_generics = parse
+    | '>'				{ tokenize lexbuf }
+    | _                 { skip_generics lexbuf }
 
 and tokenize = parse
 	| eof				{ EOF }
@@ -45,6 +51,7 @@ and tokenize = parse
 	| "store"		{ STORE }
 	| "public"		{ PUBLIC }	
 	| "entry"		{ ENTRY }	
+	| "use"			{ USE }
 
 	// types
 	| "u8"			{ U8 }
@@ -75,6 +82,7 @@ and tokenize = parse
 	| "Ge"			{ GE }
 	| "Pop"			{ POP }
 	| "Call"		{ CALL }
+	| "Abort"		{ ABORT }
 	
 	| "ReadRef"		{ READREF }
 	| "WriteRef"	{ WRITEREF }
@@ -87,20 +95,19 @@ and tokenize = parse
 	| "LdU128"		{ LDU128 }
 	| "LdConst"		{ LDCONST }
 	 
-	| "Pack"		{ PACK }	
-	| "Unpack"		{ UNPACK }
-
 	| "Branch"		{ BRANCH }
 	| "BrTrue"		{ BRTRUE }
 	| "BrFalse"		{ BRFALSE }
 	| "Ret"			{ RET }
 	
-	| "ImmBorrowField"	{ IMMBORROWFIELD }
-	| "MutBorrowField"	{ MUTBORROWFIELD }
-	| "ImmBorrowGlobal"	{ IMMBORROWGLOBAL } 
-	| "MutBorrowGlobal"	{ MUTBORROWGLOBAL }
-	| "ImmBorrowLoc"	{ IMMBORROWLOC } 
-	| "MutBorrowLoc"	{ MUTBORROWLOC }
+	| mut "BorrowField" generic		{ BORROWFIELD }
+	| mut "BorrowGlobal" generic	{ BORROWGLOBAL } 
+	| mut "BorrowLoc" generic		{ BORROWLOC } 
+	| "Pack" generic				{ PACK }	
+	| "Unpack" generic				{ UNPACK }
+	| "MoveTo" generic				{ MOVETO }
+	| "MoveFrom" generic			{ MOVEFROM }
+	| "Exists" generic				{ EXISTS }
 	    
 	// brakets
 	| '('			{ BRA }
@@ -112,8 +119,11 @@ and tokenize = parse
 
 	// punctuation
 	| ':'			{ COLON }
+	| "::"			{ COLON2 }
 	| ','			{ COMMA }
 	| '.'			{ DOT }
+	| ';'			{ SEMICOLON }
+	| '<'			{ skip_generics lexbuf }
 
 	// literals
 	| nat   	    		{ NUM (lexeme lexbuf) }

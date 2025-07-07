@@ -11,6 +11,7 @@ type token =
   | STORE
   | PUBLIC
   | ENTRY
+  | USE
   | U8
   | U64
   | U128
@@ -28,6 +29,8 @@ type token =
   | COLON
   | DOT
   | COMMA
+  | COLON2
+  | SEMICOLON
   | MOVLOC
   | CPYLOC
   | STLOC
@@ -67,12 +70,9 @@ type token =
   | WRITEREF
   | FREEZEREF
   | RET
-  | IMMBORROWLOC
-  | MUTBORROWLOC
-  | IMMBORROWFIELD
-  | MUTBORROWFIELD
-  | IMMBORROWGLOBAL
-  | MUTBORROWGLOBAL
+  | BORROWLOC
+  | BORROWFIELD
+  | BORROWGLOBAL
   | PACK
   | UNPACK
   | EXISTS
@@ -91,6 +91,7 @@ type tokenId =
     | TOKEN_STORE
     | TOKEN_PUBLIC
     | TOKEN_ENTRY
+    | TOKEN_USE
     | TOKEN_U8
     | TOKEN_U64
     | TOKEN_U128
@@ -108,6 +109,8 @@ type tokenId =
     | TOKEN_COLON
     | TOKEN_DOT
     | TOKEN_COMMA
+    | TOKEN_COLON2
+    | TOKEN_SEMICOLON
     | TOKEN_MOVLOC
     | TOKEN_CPYLOC
     | TOKEN_STLOC
@@ -147,12 +150,9 @@ type tokenId =
     | TOKEN_WRITEREF
     | TOKEN_FREEZEREF
     | TOKEN_RET
-    | TOKEN_IMMBORROWLOC
-    | TOKEN_MUTBORROWLOC
-    | TOKEN_IMMBORROWFIELD
-    | TOKEN_MUTBORROWFIELD
-    | TOKEN_IMMBORROWGLOBAL
-    | TOKEN_MUTBORROWGLOBAL
+    | TOKEN_BORROWLOC
+    | TOKEN_BORROWFIELD
+    | TOKEN_BORROWGLOBAL
     | TOKEN_PACK
     | TOKEN_UNPACK
     | TOKEN_EXISTS
@@ -165,8 +165,13 @@ type tokenId =
 type nonTerminalId = 
     | NONTERM__startprogram
     | NONTERM_program
+    | NONTERM_imports
+    | NONTERM_imports_
+    | NONTERM_import
     | NONTERM_structs
+    | NONTERM_structs_
     | NONTERM_structt
+    | NONTERM_has_capabs
     | NONTERM_fields
     | NONTERM_funs
     | NONTERM_funn
@@ -186,7 +191,6 @@ type nonTerminalId =
     | NONTERM_index
     | NONTERM_label
     | NONTERM_opcode
-    | NONTERM_opcode_borrowfield
     | NONTERM_opcode_typename
     | NONTERM_opcodes_index
     | NONTERM_opcodes_label
