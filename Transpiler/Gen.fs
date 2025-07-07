@@ -59,15 +59,18 @@ type M.Fun with
         |> function [||] -> None 
                   | l -> Some (uint (Array.max l))
             
-
+type ctx = {
+    exit_label : T.label
+    labels : T.label array
+}
 
 let touch_label (L : T.label) = ignore <| L.Force (); L
 
 let starting_label_of_fun (F : M.Fun) = lazy F.id |> touch_label
 
-let private emit_opcode (labels : Teal.label array) (P : M.program) (op : M.opcode) : T.opcode list =
+let private emit_opcode ctx (P : M.program) (op : M.opcode) : T.opcode list =
         
-    let branch cons l = cons (touch_label labels.[int l])
+    let branch cons l = cons (touch_label ctx.labels.[int l])
                 
     [
         match op with
@@ -98,14 +101,8 @@ let private emit_opcode (labels : Teal.label array) (P : M.program) (op : M.opco
         | M.Pop -> yield T.Pop
         | M.Abort -> yield T.Err
         
-        // TODO handle Ret at end of functions before emitting epilogue
-        // il problema è che ci possono essere più di una Ret in una funzione, ma l'epilogo in TEAL è solo uno.
-        // ci sono 2 soluzioni: 
-        // 1) emettere una branch al posto della retsub che salta all'epilogo
-        // 2) generare un wrapper per ogni funzione che faccia prologo + callsub + epilogo
-        | M.Ret -> yield T.Retsub  
-        
-        
+        | M.Ret ->  yield T.B ctx.exit_label
+                
         | M.LdBool b -> yield T.PushInt (if b then 1UL else 0UL) 
         | M.LdU8 b -> yield T.PushBytes [|b|]
         | M.LdU64 u -> yield T.PushInt u
@@ -182,14 +179,14 @@ let private emit_opcode (labels : Teal.label array) (P : M.program) (op : M.opco
 
     ]
 
-let private emit_instrs labels P (instrs : M.opcode array) : T.instr list =
+let private emit_instrs ctx P (instrs : M.opcode array) : T.instr list =
     [
         for i = 0 to instrs.Length - 1 do
             let mop = instrs.[i]
-            match emit_opcode labels P mop with
+            match emit_opcode ctx P mop with
             | [] -> ()
             | top1 :: tops ->
-                yield Some labels.[i], top1
+                yield Some ctx.labels.[i], top1
                 for top in tops do
                     yield None, top
     ]
@@ -197,7 +194,10 @@ let private emit_instrs labels P (instrs : M.opcode array) : T.instr list =
 let private emit_fun P (F : M.Fun) : T.instr list =
     [
         let n = F.args.Length
-        let labels = [| for i = 0 to Array.length F.body - 1 do yield lazy sprintf "%s$%d" F.id i |]
+        let ctx = {
+                exit_label = lazy sprintf "%s$exit" F.id
+                labels = [| for i = 0 to Array.length F.body - 1 do yield lazy sprintf "%s$%d" F.id i |]
+            }
         // preamble
         yield Some (starting_label_of_fun F), T.Proto (uint n, 1u)
         let Mo = F.max_local_index
@@ -211,13 +211,13 @@ let private emit_fun P (F : M.Fun) : T.instr list =
             yield None, T.Store (byte i)
             
         // body            
-        yield! emit_instrs labels P F.body
+        yield! emit_instrs ctx P F.body
  
         // epilogue
         match Mo with
         | None -> ()
         | Some M ->
-            yield None, T.Cover (M + 1u)
+            yield Some ctx.exit_label, T.Cover (M + 1u)
             for i = int M downto 0 do 
                 yield None, T.Store (byte i)
         yield None, T.Retsub
