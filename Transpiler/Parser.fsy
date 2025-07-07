@@ -141,16 +141,11 @@ capab:
   | STORE                       { Store }
  
 qid:
-    qid_parts                   { let l = List.rev $1 in List.rev (List.tail l), List.head l }
-
-qid_parts:
-    qid_part                          { [$1] }      
-  | qid_part DOT qid_parts                  { $1 :: $3 }
-  | qid_part COLON2 qid_parts               { $1 :: $3 }
-
-qid_part:
-    ID                           { $1 } 
-  | NUM							 { $1 }
+    ID                          { None, $1 }
+  | ID COLON2 ID			    { Some $1, $3 }  
+  | ID DOT ID			        { Some $1, $3 }     
+  | NUM DOT ID			        { None, $3 }     
+  | NUM COLON2 ID		        { None, $3 }     
 
 tys:
     ty                          { [$1] }

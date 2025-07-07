@@ -70,16 +70,15 @@ type M.Fun with
 // context and labels
 //
             
-let touch_label (L : T.label) = ignore <| L.Force (); L
-
 type ctx = {
     exit_label : T.label
     labels : T.label array
 }
 
-let start_label (P : M.Module) (F : M.Fun) = lazy (sprintf "%s.%s" P.name F.id) |> touch_label
-let exit_label (P : M.Module) (F : M.Fun) = lazy (sprintf "%s.%s$exit" P.name F.id)
-let instr_label (P : M.Module) (F : M.Fun) i = lazy (sprintf "%s.%s$%d" P.name F.id i) 
+let touch_label (L : T.label) = ignore <| L.Force (); L
+let start_label mid fid = lazy (sprintf "%s.%s" mid fid) |> touch_label
+let exit_label mid fid = lazy (sprintf "%s.%s$exit" mid fid)
+let instr_label mid fid i = lazy (sprintf "%s.%s$%d" mid fid i) 
 
 
 
@@ -129,12 +128,13 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) : T.opcode list =
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
 
-        | M.Call (([], id), _, _) ->
-            let F = List.find (fun (F : M.Fun) -> F.id = id) P.funs 
-            yield T.Callsub (start_label P F)
+        | M.Call ((qid, id), _, _) ->
+            let mid = Option.defaultValue P.name qid
+            yield T.Callsub (start_label mid id)
+
+
 
         // TODO implement Call to natives
-        // TODO implement Call to qid
         
 
         | M.ReadRef -> yield T.Callsub (lazy "ReadRef")         // TODO include read_ref/write_ref functions in emitted code
@@ -216,15 +216,15 @@ let private emit_instrs ctx P (instrs : M.opcode array) : T.instr list =
                     yield None, top
     ]
 
-let private emit_fun P (F : M.Fun) : T.instr list =
+let private emit_fun (P : M.Module) (F : M.Fun) : T.instr list =
     [
         let n = F.args.Length
         let ctx = {
-                exit_label = exit_label P F
-                labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P F i |]
+                exit_label = exit_label P.name F.id
+                labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.id i |]
             }
         // preamble
-        yield Some (start_label P F), T.Proto (uint n, 1u)
+        yield Some (start_label P.name F.id), T.Proto (uint n, 1u)
         let Mo = F.max_local_index
         match Mo with
         | None -> ()
@@ -273,10 +273,9 @@ and import_module (_, id) =
             Report.error "import file not found: %s" filename
         
 
-
 let emit_program (P : M.Module) : T.program =       
     [
-        yield None, T.Callsub (start_label P P.find_main)
+        yield None, T.Callsub (start_label P.name P.find_main.id)
         yield None, T.PushInt 1UL
         yield None, T.Return 
         yield! emit_module P
@@ -291,7 +290,7 @@ let emit_program (P : M.Module) : T.program =
 
 // Verifica che ci siano argomenti
 txn ApplicationArgs 0
-byte_length
+len
 int 0
 >
 bnz dispatch_start

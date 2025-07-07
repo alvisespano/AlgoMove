@@ -192,8 +192,6 @@ type nonTerminalId =
     | NONTERM_capabs
     | NONTERM_capab
     | NONTERM_qid
-    | NONTERM_qid_parts
-    | NONTERM_qid_part
     | NONTERM_tys
     | NONTERM_index
     | NONTERM_label

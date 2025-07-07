@@ -6,7 +6,7 @@ open FSharp.Common
 module Move =
 
     type id = string
-    type qid = id list * id
+    type qid = id option * id
     type address = string
     type label = uint
 
