@@ -30,18 +30,18 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 %token EOF
 
 
-%type < AlgoMove.Transpiler.Absyn.Move.program > program
+%type < AlgoMove.Transpiler.Absyn.Move.Module > Module
 
-%start program
+%start Module
 
 %%
 
-program: 
+Module: 
     MODULE qid CURBRA
         imports
         structs
         funs
-    CURKET EOF                  { { modulename = $2; imports = $4; structs = $5; funs = $6 } }
+    CURKET EOF                  { { fullname = $2; imports = $4; structs = $5; funs = $6 } }
 
 imports:
     imports_                    { $1 }
@@ -183,11 +183,11 @@ opcode:
   | LDCONST SQBRA NUM SQKET BRA const KET                   { LdConst $6 }   
 
 const:
-    const_ty COLON SQBRA nums SQKET    { $1, $4 }
+    const_ty COLON SQBRA nums SQKET    { ty.of_const_ty $1, $4 }
 
 const_ty:
-    ID						    { ty.Typename ($1.ToLower()) }   
-  | ID BRA const_ty KET         { ty.Cons ($1.ToLower(), $3) } 
+    ID						    { $1, None }   
+  | ID BRA ID KET               { $1, Some $3 } 
  
 nums:
     NUM                         { [int $1] }

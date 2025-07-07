@@ -20,4 +20,4 @@ let load_and_parse_module filename =
     use rd = new IO.StreamReader (fstr)
     cwd <- IO.Path.GetDirectoryName filename
     Report.info "parsing source file '%s'..." filename
-    parse_from_TextReader rd filename (1, 1) Parser.program Lexer.tokenize Parser.tokenTagToTokenId
+    parse_from_TextReader rd filename (1, 1) Parser.Module Lexer.tokenize Parser.tokenTagToTokenId

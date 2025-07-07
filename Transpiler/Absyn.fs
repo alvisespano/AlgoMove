@@ -1,7 +1,7 @@
 ﻿module AlgoMove.Transpiler.Absyn
 
 open System
-
+open FSharp.Common
 
 module Move =
 
@@ -18,11 +18,18 @@ module Move =
         | U64
         | U128
         | Address
+        | Vector of ty
         | Typename of id
         | Ref of ty
         | MutRef of ty 
         | Tuple of ty list
-        | Cons of id * ty   // only types of LdConst use this
+    with 
+        static member of_const_ty (cons : id, arg : id option) =
+            match cons.ToLower(), Option.map (fun (s : string) -> s.ToLower()) arg with
+            | "address", None -> ty.Address
+            | "vector", Some "u8" -> ty.Vector ty.U8
+            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Move const type '%s%s' not recognized" cons (Option.map (sprintf "(%s)") arg |> Option.defaultValue "")
+
 
     type field = id * ty
     type arg = field
@@ -85,8 +92,9 @@ module Move =
 
     type Struct = { id : id; capabs : capab list; fields : field list }
 
-    type program = { modulename : qid; imports: qid list; structs : Struct list; funs : Fun list }
-
+    type Module = { fullname : qid; imports: qid list; structs : Struct list; funs : Fun list }
+    with
+        member P.name = let _, s = P.fullname in s
 
 module Teal =
    

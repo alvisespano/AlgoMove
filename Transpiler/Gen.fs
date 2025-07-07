@@ -11,7 +11,7 @@ let generic_field_length = 8 // default length for fields with generic types
 // type augmentations
 //
 
-type M.program with
+type M.Module with
     member P.struct_by_name id = P.structs.[int <| P.index_of_struct id]
 
     member P.index_of_struct id = List.findIndex (fun (s : M.Struct) -> s.id = id) P.structs |> byte
@@ -70,20 +70,23 @@ type M.Fun with
 // context and labels
 //
             
+let touch_label (L : T.label) = ignore <| L.Force (); L
+
 type ctx = {
     exit_label : T.label
     labels : T.label array
 }
 
-let touch_label (L : T.label) = ignore <| L.Force (); L
+let start_label (P : M.Module) (F : M.Fun) = lazy (sprintf "%s.%s" P.name F.id) |> touch_label
+let exit_label (P : M.Module) (F : M.Fun) = lazy (sprintf "%s.%s$exit" P.name F.id)
+let instr_label (P : M.Module) (F : M.Fun) i = lazy (sprintf "%s.%s$%d" P.name F.id i) 
 
-let starting_label_of_fun (F : M.Fun) = lazy F.id |> touch_label
 
 
 // transpiler functions
 //
 
-let private emit_opcode ctx (P : M.program) (op : M.opcode) : T.opcode list =
+let private emit_opcode ctx (P : M.Module) (op : M.opcode) : T.opcode list =
         
     let branch cons l = cons (touch_label ctx.labels.[int l])
                 
@@ -127,7 +130,7 @@ let private emit_opcode ctx (P : M.program) (op : M.opcode) : T.opcode list =
 
         | M.Call (([], id), _, _) ->
             let F = List.find (fun (F : M.Fun) -> F.id = id) P.funs 
-            yield T.Callsub (starting_label_of_fun F)
+            yield T.Callsub (start_label P F)
 
         // TODO implement Call to natives
         // TODO implement Call to qid
@@ -138,7 +141,9 @@ let private emit_opcode ctx (P : M.program) (op : M.opcode) : T.opcode list =
         | M.FreezeRef -> ()
 
         | M.LdU128 n -> yield T.UnsupportedOpcode op
-        | M.LdConst _ -> yield T.UnsupportedOpcode op
+
+        | M.LdConst ((M.ty.Address | M.ty.Vector M.ty.U8), nums) ->
+            yield T.PushBytes (Array.ofList <| List.map byte nums)
 
         | M.Pack id ->
             let S = P.struct_by_name id
@@ -214,11 +219,11 @@ let private emit_fun P (F : M.Fun) : T.instr list =
     [
         let n = F.args.Length
         let ctx = {
-                exit_label = lazy sprintf "%s$exit" F.id
-                labels = [| for i = 0 to Array.length F.body - 1 do yield lazy sprintf "%s$%d" F.id i |]
+                exit_label = exit_label P F
+                labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P F i |]
             }
         // preamble
-        yield Some (starting_label_of_fun F), T.Proto (uint n, 1u)
+        yield Some (start_label P F), T.Proto (uint n, 1u)
         let Mo = F.max_local_index
         match Mo with
         | None -> ()
@@ -243,9 +248,8 @@ let private emit_fun P (F : M.Fun) : T.instr list =
     ]
 
 
-let rec emit_module (P : M.program) =       
-    // do imports BEFORE
-    let imports =   
+let rec emit_module (P : M.Module) =           
+    let imports =   // do imports BEFORE
         [
             for qid in P.imports do
                 yield! import_and_emit_module qid
@@ -270,10 +274,55 @@ and import_and_emit_module (_, id) =
         
 
 
-let emit_program (P : M.program) : T.program =       
+let emit_program (P : M.Module) : T.program =       
     [
-        yield None, T.Callsub (starting_label_of_fun P.find_main)
+        yield None, T.Callsub (start_label P P.find_main)
         yield None, T.PushInt 1UL
         yield None, T.Return 
         yield! emit_module P
     ]
+
+// TODO emit TEAL preamble like the one below
+(*
+#pragma version 6
+
+// Verifica che ci siano argomenti
+txn ApplicationArgs 0
+byte_length
+int 0
+>
+bnz dispatch_start
+err
+
+// Dispatch logic
+dispatch_start:
+txn ApplicationArgs 0
+btoi
+store 0          // index ← funzione selezionata
+
+load 0
+int 0
+==
+bnz funzione_0
+
+load 0
+int 1
+==
+bnz funzione_1
+
+// ... aggiungi altri casi qui
+
+err // se nessun caso matcha
+
+// Funzione 0
+funzione_0:
+    // inserisci qui la logica della funzione 0
+    int 1
+    return
+
+// Funzione 1
+funzione_1:
+    // inserisci qui la logica della funzione 1
+    int 1
+    return
+    *)
