@@ -18,5 +18,5 @@ let info fmt = L.msg Normal fmt
 
 let unsupported fmt = L.log_unleveled "UNSUPPORTED" ConsoleColor.DarkMagenta fmt
 
-
+let debug fmt = L.debug Normal fmt
 
