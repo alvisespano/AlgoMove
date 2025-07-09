@@ -141,7 +141,7 @@ let private emit_call_native mid fid =
     ]
      
 
-let private emit_opcode ctx (P : M.Module) (op : M.opcode) : T.opcode list =
+let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
         
     let branch cons l = cons (touch_label ctx.labels.[int l])
 
@@ -263,7 +263,7 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) : T.opcode list =
 
     ]
 
-let private emit_instrs ctx P (instrs : M.opcode array) : T.instr list =
+let private emit_instrs ctx P (instrs : M.opcode array) =
     [
         for i = 0 to instrs.Length - 1 do
             let mop = instrs.[i]
@@ -275,7 +275,7 @@ let private emit_instrs ctx P (instrs : M.opcode array) : T.instr list =
                     yield None, top
     ]
 
-let private emit_fun (P : M.Module) (F : M.Fun) : T.instr list =
+let private emit_fun (P : M.Module) (F : M.Fun) =
     [
         let n = F.args.Length
         let ctx = {
@@ -328,7 +328,13 @@ and import_module (_, id) =
             ImportCache.[id] <- P, emit_module P
         with :? System.IO.FileNotFoundException as e ->
             Report.error "disassembled import file not found: %s.\nPlease disassemble all dependencies and put them in the same folder with the main module." filename
-        
+
+let emit_preamble (P : M.Module) =
+    [
+        yield Some (start_label P.name P.find_main.id), T.Txn "ApplicationArgs"
+        // TODO emit TEAL preamble and epilogue
+    ]
+
 
 let emit_program (P : M.Module) : T.program =       
     [
@@ -341,7 +347,6 @@ let emit_program (P : M.Module) : T.program =
             yield! p.Value |> snd
     ]
 
-// TODO emit TEAL preamble and epilogue
 
 // TODO emit preamble part:
 (*
