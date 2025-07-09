@@ -34,6 +34,7 @@ module Move =
     type field = id * ty
     type arg = field
 
+    [<RequireQualifiedAccess>]
     type qual = Public | Entry | Native
 
     type capab = Key | Store | Copy | Drop
@@ -104,6 +105,7 @@ module Teal =
 
     type opcode =
         | UnsupportedOpcode of Move.opcode
+        | UnsupportedNative of string
 
         // Stack manipulation
         | PushInt of uint64
@@ -164,7 +166,7 @@ module Teal =
         // Global/Txn
         | Global of string
         | Txn of string
-        | Txna of string * int
+        | Txnas of string
         | ITxnBegin
         | ITxnField of string
         | ITxnSubmit
@@ -172,7 +174,8 @@ module Teal =
         // Account/Asset/App
         | Balance
         | MinBalance
-        | AssetHoldingGet of string * int
+        | AssetHoldingGet of string
+        | AssetParamsGet of string
         | AppLocalPut
         | AppLocalGet
         | AppLocalDel
@@ -198,7 +201,8 @@ module Teal =
 
     let pretty_opcode (op: opcode) : string =
         match op with
-        | UnsupportedOpcode m -> sprintf "UNSUPPORTED(%A)" m
+        | UnsupportedOpcode mop -> sprintf "UNSUPPORTED_OPCODE[%A]" mop
+        | UnsupportedNative s -> sprintf "UNSUPPORTED_NATIVE[%s]" s
         | PushInt n -> sprintf "pushint %d" n
         | PushBytes b -> sprintf "pushbytes 0x%s" (System.BitConverter.ToString(b).Replace("-", ""))
         | Pop -> "pop"
@@ -243,13 +247,14 @@ module Teal =
         | StoreS -> "stores"
         | Global s -> sprintf "global %s" s
         | Txn s -> sprintf "txn %s" s
-        | Txna (s, i) -> sprintf "txna %s %d" s i
+        | Txnas s -> sprintf "txnas %s" s
         | ITxnBegin -> "itxn_begin"
         | ITxnField s -> sprintf "itxn_field %s" s
         | ITxnSubmit -> "itxn_submit"
         | Balance -> "balance"
         | MinBalance -> "min_balance"
-        | AssetHoldingGet (s, i) -> sprintf "asset_holding_get %s %d" s i
+        | AssetHoldingGet s -> sprintf "asset_holding_get %s" s
+        | AssetParamsGet s -> sprintf "asset_params_get %s" s
         | AppLocalPut -> "app_local_put"
         | AppLocalGet -> "app_local_get"
         | AppLocalDel -> "app_local_del"

@@ -108,9 +108,9 @@ quals:
   | qual quals                  { $1 :: $2 }
 
 qual:
-    PUBLIC                      { Public }
-  | ENTRY                       { Entry }
-  | NATIVE  				    { Native }    
+    PUBLIC                      { qual.Public }
+  | ENTRY                       { qual.Entry }
+  | NATIVE  				    { qual.Native }    
 
 return_ty:
     COLON ty                    { Some $2 }

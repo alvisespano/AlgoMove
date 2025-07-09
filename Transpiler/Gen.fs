@@ -2,11 +2,11 @@
 
 open AlgoMove.Transpiler.Absyn
 open FSharp.Common
+open System.Text.RegularExpressions
 
 module M = Move
 module T = Teal
 
-let generic_field_length = 8 // default length for fields with generic types
 
 // type augmentations
 //
@@ -36,13 +36,13 @@ type M.Module with
             try
                 let S = P.struct_by_name s
                 List.sumBy (fun (_, ty) -> P.len_of_ty ty) S.fields |> uint16
-            with _ -> Report.unsupported "typename %s is a generic type. Defaulting length to %d bytes" s generic_field_length
-                      uint16 generic_field_length
+            with _ -> Report.unsupported "typename %s is a generic type. Defaulting length to %d bytes" s Config.generic_field_default_length
+                      uint16 Config.generic_field_default_length
 
         | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Type %A should not appear in structs" ty
 
     member P.find_main =
-        match List.filter (fun (F : M.Fun) -> List.contains M.Entry F.quals) P.funs with
+        match List.filter (fun (F : M.Fun) -> List.contains M.qual.Entry F.quals) P.funs with
         | [] ->
             let F = P.funs.Head
             Report.warn "no entry function found. Picking first available: %s" F.id
@@ -76,18 +76,83 @@ type ctx = {
 }
 
 let touch_label (L : T.label) = ignore <| L.Force (); L
-let start_label mid fid = lazy (sprintf "%s.%s" mid fid) |> touch_label
-let exit_label mid fid = lazy (sprintf "%s.%s$exit" mid fid)
-let instr_label mid fid i = lazy (sprintf "%s.%s$%d" mid fid i) 
+let qid_label mid fid = sprintf "%s%c%s" mid Config.teal_label_module_sep fid
+let sublabel mid fid sub = sprintf "%s%c%s" (qid_label mid fid) Config.teal_sublabel_sep sub
+let start_label mid fid = lazy (qid_label mid fid) |> touch_label
+let exit_label mid fid = lazy (sublabel mid fid Config.teal_exit_sublabel)
+let instr_label mid fid i = lazy (sublabel mid fid (string i)) 
 
 
 
 // transpiler functions
 //
 
+let private ImportCache = System.Collections.Generic.Dictionary<M.id, M.Module * T.instr list>()
+
+exception private UnsupportedNative
+
+let private emit_call_native mid fid =
+
+    let (|Regex|_|) pattern input =
+        let m = Regex.Match (input, pattern)
+        if m.Success then Some (List.tail [ for g in m.Groups -> g.Value ])
+        else None
+    [
+        try
+            match mid with
+            | "utils" ->
+                match fid with 
+                | "address_of_signer"
+                | "bytes_of_address" -> ()
+                | _ -> raise UnsupportedNative
+
+            | "opcode" ->
+                match fid with
+                | "itxn_begin" -> yield T.ITxnBegin
+                | "itxn_submit" -> yield T.ITxnSubmit
+
+                | Regex @"itxn_field_(\w+)" [field] -> yield T.ITxnField field
+                | Regex @"global_(\w+)" [field] -> yield T.Global field
+                | Regex @"txn_(\w+)" [field] -> yield T.Txn field
+                | Regex @"txnas_(\w+)" [field] -> yield T.Txnas field
+                | Regex @"asset_holding_get_(\w+)" [field] -> yield T.AssetHoldingGet field
+                | Regex @"asset_params_get_(\w+)" [field] -> yield T.AssetParamsGet field
+
+                | "balance"       -> yield T.Balance
+                | "min_balance"   -> yield T.MinBalance
+                | "app_local_get" -> yield T.AppLocalGet
+                | "app_global_get"-> yield T.AppGlobalGet
+                | "app_local_put" -> yield T.AppLocalPut
+                | "app_global_put"-> yield T.AppGlobalPut
+                | "assert"        -> yield T.Assert
+                | "itob"          -> yield T.Itob
+                | "btoi"          -> yield T.Btoi
+                | "len"           -> yield T.Len
+                | "concat"        -> yield T.Concat
+                | "err"           -> yield T.Err
+
+                | _ -> raise UnsupportedNative
+            
+            | _ -> raise UnsupportedNative
+
+        with UnsupportedNative ->
+            Report.unsupported "native function %s.%s is not supported" mid fid
+            yield T.UnsupportedNative (sprintf "%s::%s" mid fid)
+    ]
+     
+
 let private emit_opcode ctx (P : M.Module) (op : M.opcode) : T.opcode list =
         
     let branch cons l = cons (touch_label ctx.labels.[int l])
+
+    let (|Native|NonNative|) (qid, fid) =
+        let m = 
+            match qid with
+            | Some mid -> ImportCache.[mid] |> fst
+            | None     -> P
+        if List.exists (fun (F : M.Fun) -> F.id = fid && List.contains M.qual.Native F.quals) m.funs
+        then Native (m.name, fid)
+        else NonNative (m.name, fid)
                 
     [
         match op with
@@ -128,14 +193,8 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) : T.opcode list =
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
 
-        | M.Call ((qid, id), _, _) ->
-            let mid = Option.defaultValue P.name qid
-            yield T.Callsub (start_label mid id)
-
-
-
-        // TODO implement Call to natives
-        
+        | M.Call (NonNative (mid, id), _, _) -> yield T.Callsub (start_label mid id)
+        | M.Call (Native (mid, id), _, _) -> yield! emit_call_native mid id
 
         | M.ReadRef -> yield T.Callsub (lazy "ReadRef")         // TODO include read_ref/write_ref functions in emitted code
         | M.WriteRef -> yield T.Callsub (lazy "WriteRef")
@@ -249,8 +308,6 @@ let private emit_fun (P : M.Module) (F : M.Fun) : T.instr list =
     ]
 
 
-let private import_cache = System.Collections.Generic.Dictionary<M.id, T.instr list>()
-
 
 let rec emit_module (P : M.Module) =           
     // do imports BEFORE
@@ -263,14 +320,14 @@ let rec emit_module (P : M.Module) =
     ]
 
 and import_module (_, id) =
-    if not (import_cache.ContainsKey id) then
-        Report.info "importing module '%s'..." id
+    if not (ImportCache.ContainsKey id) then
+        Report.info "importing disassembled module '%s'..." id
         let filename = sprintf "%s.mv.asm" id
         try
             let P = Parsing.load_and_parse_module filename
-            import_cache.[id] <- emit_module P
+            ImportCache.[id] <- P, emit_module P
         with :? System.IO.FileNotFoundException as e ->
-            Report.error "import file not found: %s" filename
+            Report.error "disassembled import file not found: %s.\nPlease disassemble all dependencies and put them in the same folder with the main module." filename
         
 
 let emit_program (P : M.Module) : T.program =       
@@ -280,22 +337,14 @@ let emit_program (P : M.Module) : T.program =
         yield None, T.Return 
         yield! emit_module P
         // append imports
-        for p in import_cache do
-            yield! p.Value
+        for p in ImportCache do
+            yield! p.Value |> snd
     ]
 
-// TODO emit TEAL preamble like the one below
+// TODO emit TEAL preamble and epilogue
+
+// TODO emit preamble part:
 (*
-#pragma version 6
-
-// Verifica che ci siano argomenti
-txn ApplicationArgs 0
-len
-int 0
->
-bnz dispatch_start
-err
-
 // Dispatch logic
 dispatch_start:
 txn ApplicationArgs 0

@@ -1063,7 +1063,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 111 "Parser.fsy"
-                                                       Public 
+                                                       qual.Public 
                    )
 # 111 "Parser.fsy"
                  : 'gentype_qual));
@@ -1073,7 +1073,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 112 "Parser.fsy"
-                                                       Entry 
+                                                       qual.Entry 
                    )
 # 112 "Parser.fsy"
                  : 'gentype_qual));
@@ -1083,7 +1083,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 113 "Parser.fsy"
-                                           Native 
+                                           qual.Native 
                    )
 # 113 "Parser.fsy"
                  : 'gentype_qual));

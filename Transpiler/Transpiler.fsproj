@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+	  <Compile Include="Config.fs" />
 	  <Compile Include="Absyn.fs" />
 	  <FsYacc Include="Parser.fsy">
 		  <OtherFlags>--module AlgoMove.Transpiler.Parser</OtherFlags>
@@ -29,7 +30,11 @@
     <Compile Include="Parsing.fs" />
     <Compile Include="Gen.fs" />
 	  <Compile Include="Main.fs" />
+	  <None Include="preamble.teal" />
+	  <None Include="epilogue.teal" />
   </ItemGroup>
+
+  <ItemGroup />
 
   <ItemGroup>
     <PackageReference Include="FsLexYacc" Version="11.3.0" />

@@ -1,0 +1,10 @@
+#pragma version 6
+
+txn ApplicationArgs 0
+len
+int 0
+>
+bnz dispatch_start
+err
+
+
