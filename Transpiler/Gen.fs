@@ -89,6 +89,15 @@ let instr_label mid fid i = lazy (sublabel_name mid fid (string i))
 
 let private ImportCache = System.Collections.Generic.Dictionary<M.id, M.Module * T.opcode list>()
 
+let private TouchedFunCache = System.Collections.Generic.HashSet<M.id * M.id>()
+
+let private emit_call mid id =
+    TouchedFunCache.Add (mid, id) |> ignore
+    [
+        yield T.Callsub (solid_label mid id)
+    ]
+
+
 exception private UnsupportedNative
 
 let private emit_call_native mid fid =
@@ -194,7 +203,7 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
 
-        | M.Call (NonNative (mid, id), _, _) -> yield T.Callsub (solid_label mid id)
+        | M.Call (NonNative (mid, id), _, _) -> yield! emit_call mid id
         | M.Call (Native (mid, id), _, _) -> yield! emit_call_native mid id
 
         | M.ReadRef -> yield T.Callsub (lazy "ReadRef")        
@@ -278,38 +287,43 @@ let private emit_instrs ctx P (instrs : M.opcode array) =
     ]
 
 let private emit_fun (P : M.Module) (F : M.Fun) =
-    [
-        let n = F.args.Length
-        let ctx = {
-                exit_label = exit_label P.name F.name
-                labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.name i |]
-            }
-        // preamble
-        yield T.Label (solid_label P.name F.name)
-        yield T.Proto (uint n, 1u)
-        let Mo = F.max_local_index
-        match Mo with
-        | None -> ()
-        | Some M ->
-            for i = 0u to M do 
-                yield T.Load i
-        for i = 0 to n - 1 do 
-            yield T.FrameDig (-(i + 1))
-            yield T.Store (uint i)
-            
-        // body            
-        yield! emit_instrs ctx P F.body
- 
-        // epilogue
-        match Mo with
-        | None -> ()
-        | Some M ->
-            yield T.Label ctx.exit_label
-            yield T.Cover (M + 1u)
-            for i = int M downto 0 do 
+    // TODO emit all functions on a lazy list and force its evaluation only if the function is called
+    //if TouchedFunCache.Contains (P.name, F.name) then
+        [
+            let n = F.args.Length
+            let ctx = {
+                    exit_label = exit_label P.name F.name
+                    labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.name i |]
+                }
+            // preamble
+            yield T.Label (solid_label P.name F.name)
+            yield T.Proto (uint n, 1u)
+            let Mo = F.max_local_index
+            match Mo with
+            | None -> ()
+            | Some M ->
+                for i = 0u to M do 
+                    yield T.Load i
+            for i = 0 to n - 1 do 
+                yield T.FrameDig (-(i + 1))
                 yield T.Store (uint i)
-        yield T.Retsub
-    ]
+            
+            // body            
+            yield! emit_instrs ctx P F.body
+ 
+            // epilogue
+            match Mo with
+            | None -> ()
+            | Some M ->
+                yield T.Label ctx.exit_label
+                yield T.Cover (M + 1u)
+                for i = int M downto 0 do 
+                    yield T.Store (uint i)
+            yield T.Retsub
+        ]
+    //else 
+    //    Report.debug "function %s.%s is never called. Skipping." P.name F.name
+    //    []
 
 
 
@@ -354,7 +368,7 @@ let emit_preamble (P : M.Module) =
                         match F.args.[i] with
                         | _, M.ty.Ref (M.ty.Typename "signer") -> yield T.Txn "Sender"
                         | _ -> yield T.Txna ("ApplicationArgs", uint (i + 1))   
-                    yield T.Callsub (solid_label P.name F.name)
+                    yield! emit_call P.name F.name
                     yield T.Return
               ]
 
