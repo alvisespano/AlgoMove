@@ -90,7 +90,7 @@ module Move =
 
     //type instr = label * opcode
 
-    type Fun = { quals : qual list; id : id; args : arg list; ret : ty option; body : opcode array }
+    type Fun = { quals : qual list; name : id; args : arg list; ret : ty option; body : opcode array }
 
     type Struct = { id : id; capabs : capab list; fields : field list }
 
@@ -103,6 +103,7 @@ module Teal =
     type label = string Lazy
 
     type opcode =
+        | Label of label
         | UnsupportedOpcode of Move.opcode
         | UnsupportedNative of string
 
@@ -155,7 +156,8 @@ module Teal =
         | Bz of label
         | Callsub of label
         | Retsub
-
+        | Switch of label list
+        
         // Storage/State
         | Load of uint
         | Store of uint
@@ -166,6 +168,7 @@ module Teal =
         | Global of string
         | Txn of string
         | Txnas of string
+        | Txna of string * uint
         | ITxnBegin
         | ITxnField of string
         | ITxnSubmit
@@ -194,12 +197,11 @@ module Teal =
         | Return
 
 
-    type instr = label option * opcode
+    type program = opcode list
 
-    type program = instr list
-
-    let pretty_opcode (op: opcode) : string =
+    let pretty_opcode (op: opcode) =
         match op with
+        | Label l -> if l.IsValueCreated then sprintf "%s:" l.Value else ""
         | UnsupportedOpcode mop -> sprintf "UNSUPPORTED_OPCODE[%A]" mop
         | UnsupportedNative s -> sprintf "UNSUPPORTED_NATIVE[%s]" s
         | PushInt n -> sprintf "pushint %d" n
@@ -235,6 +237,7 @@ module Teal =
         | Le -> "<="
         | Gt -> ">"
         | Ge -> ">="
+        | Switch ls -> sprintf "switch %s" (mappen_strings (fun (l : label) -> l.Value) " " ls)
         | B l -> sprintf "b %s" l.Value
         | Bnz l -> sprintf "bnz %s" l.Value
         | Bz l -> sprintf "bz %s" l.Value
@@ -247,6 +250,7 @@ module Teal =
         | Global s -> sprintf "global %s" s
         | Txn s -> sprintf "txn %s" s
         | Txnas s -> sprintf "txnas %s" s
+        | Txna (s, i) -> sprintf "txna %s %d" s i
         | ITxnBegin -> "itxn_begin"
         | ITxnField s -> sprintf "itxn_field %s" s
         | ITxnSubmit -> "itxn_submit"
@@ -270,14 +274,8 @@ module Teal =
         | Proto (a, b) -> sprintf "proto %d %d" a b
         | Return -> "return"
 
-    let pretty_instr ((lo, op) : instr) =
-        let op = pretty_opcode op
-        match lo with
-        | Some l when l.IsValueCreated -> sprintf "%s:\n\t%s" l.Value op
-        | _ -> sprintf "\t%s" op
-
     let pretty_program (prog: program) =
-        (List.map pretty_instr prog |> String.concat "\n") + "\n"
+        (List.map (fun (op : opcode) -> sprintf "%s%s" (if op.IsLabel then "" else "\t") (pretty_opcode op)) prog |> List.filter (fun s -> s <> "") |> String.concat "\n") + "\n"
 
 
 

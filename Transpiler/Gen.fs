@@ -45,13 +45,13 @@ type M.Module with
         match List.filter (fun (F : M.Fun) -> List.contains M.qual.Entry F.quals) P.funs with
         | [] ->
             let F = P.funs.Head
-            Report.warn "no entry function found. Picking first available: %s" F.id
+            Report.warn "no entry function found. Picking first available: %s" F.name
             F
 
         | [F] -> F
 
         | F1 :: _ as Fs -> 
-            match List.tryFind (fun (F : M.Fun) -> F.id = "main") Fs with
+            match List.tryFind (fun (F : M.Fun) -> F.name = "main") Fs with
             | Some F -> F
             | None -> F1
 
@@ -76,18 +76,18 @@ type ctx = {
 }
 
 let touch_label (L : T.label) = ignore <| L.Force (); L
-let qid_label mid fid = sprintf "%s%c%s" mid Config.teal_label_module_sep fid
-let sublabel mid fid sub = sprintf "%s%c%s" (qid_label mid fid) Config.teal_sublabel_sep sub
-let solid_label mid fid = lazy (qid_label mid fid) |> touch_label
-let exit_label mid fid = lazy (sublabel mid fid Config.teal_exit_sublabel)
-let instr_label mid fid i = lazy (sublabel mid fid (string i)) 
+let qid_label_name mid fid = sprintf "%s%c%s" mid Config.teal_label_module_sep fid
+let sublabel_name mid fid sub = sprintf "%s%c%s" (qid_label_name mid fid) Config.teal_sublabel_sep sub
+let solid_label mid fid = lazy (qid_label_name mid fid) |> touch_label
+let exit_label mid fid = lazy (sublabel_name mid fid Config.teal_exit_sublabel)
+let instr_label mid fid i = lazy (sublabel_name mid fid (string i)) 
 
 
 
 // transpiler functions
 //
 
-let private ImportCache = System.Collections.Generic.Dictionary<M.id, M.Module * T.instr list>()
+let private ImportCache = System.Collections.Generic.Dictionary<M.id, M.Module * T.opcode list>()
 
 exception private UnsupportedNative
 
@@ -151,7 +151,7 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
             match qid with
             | Some mid -> ImportCache.[mid] |> fst
             | None     -> P
-        if List.exists (fun (F : M.Fun) -> F.id = fid && List.contains M.qual.Native F.quals) m.funs
+        if List.exists (fun (F : M.Fun) -> F.name = fid && List.contains M.qual.Native F.quals) m.funs
         then Native (m.name, fid)
         else NonNative (m.name, fid)
                 
@@ -271,29 +271,31 @@ let private emit_instrs ctx P (instrs : M.opcode array) =
             match emit_opcode ctx P mop with
             | [] -> ()
             | top1 :: tops ->
-                yield Some ctx.labels.[i], top1
+                yield T.Label ctx.labels.[i]
+                yield top1
                 for top in tops do
-                    yield None, top
+                    yield top
     ]
 
 let private emit_fun (P : M.Module) (F : M.Fun) =
     [
         let n = F.args.Length
         let ctx = {
-                exit_label = exit_label P.name F.id
-                labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.id i |]
+                exit_label = exit_label P.name F.name
+                labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.name i |]
             }
         // preamble
-        yield Some (solid_label P.name F.id), T.Proto (uint n, 1u)
+        yield T.Label (solid_label P.name F.name)
+        yield T.Proto (uint n, 1u)
         let Mo = F.max_local_index
         match Mo with
         | None -> ()
         | Some M ->
             for i = 0u to M do 
-                yield None, T.Load i
+                yield T.Load i
         for i = 0 to n - 1 do 
-            yield None, T.FrameDig (-(i + 1))
-            yield None, T.Store (uint i)
+            yield T.FrameDig (-(i + 1))
+            yield T.Store (uint i)
             
         // body            
         yield! emit_instrs ctx P F.body
@@ -302,10 +304,11 @@ let private emit_fun (P : M.Module) (F : M.Fun) =
         match Mo with
         | None -> ()
         | Some M ->
-            yield Some ctx.exit_label, T.Cover (M + 1u)
+            yield T.Label ctx.exit_label
+            yield T.Cover (M + 1u)
             for i = int M downto 0 do 
-                yield None, T.Store (uint i)
-        yield None, T.Retsub
+                yield T.Store (uint i)
+        yield T.Retsub
     ]
 
 
@@ -333,20 +336,26 @@ and import_module (_, id) =
 let emit_preamble (P : M.Module) =
     let funs = List.filter (fun (F : M.Fun) -> List.contains M.qual.Entry F.quals) P.funs
     if funs.Length = 0 then
-        Report.warn "no entry function found in module '%s'. Generating all functions and no dispatcher in the preamble." P.name
+        Report.warn "no entry function found in module '%s'. Library modules include no dispatcher in the preamble." P.name
         false, []
     else
         Report.info "found %d entry functions in module '%s'" funs.Length P.name
         true, [
-                yield Some (solid_label "startup" "dispatcher"), T.Txn "ApplicationArgs"
-                yield None, T.Btoi
-                yield None, T.Store 0u
-                for i = 0 to funs.Length - 1 do
-                    yield None, T.Load (uint 0)
-                    yield None, T.PushInt (uint64 i)
-                    yield None, T.Eq
-                    yield None, T.Bnz (solid_label P.name P.funs.[i].id)
-                yield None, T.Err
+                yield T.Label (solid_label "startup" "dispatcher")
+                yield T.Txna ("ApplicationArgs", 0u)
+                yield T.Btoi
+                let labels = [ for F in funs do yield solid_label "startup" (qid_label_name P.name F.name) ]
+                yield T.Switch labels
+                yield T.Err
+                for l, F in List.zip labels funs do
+                    let signer = List.tryFindIndex (function (_, M.ty.Ref (M.ty.Typename "signer")) -> true | _ -> false) F.args
+                    yield T.Label l
+                    for i = 0 to F.args.Length - 1 do
+                        match F.args.[i] with
+                        | _, M.ty.Ref (M.ty.Typename "signer") -> yield T.Txn "Sender"
+                        | _ -> yield T.Txna ("ApplicationArgs", uint (i + 1))   
+                    yield T.Callsub (solid_label P.name F.name)
+                    yield T.Return
               ]
 
 let emit_program (P : M.Module) : T.program =

@@ -1,0 +1,1392 @@
+
+#pragma version 11
+
+	txn NumApplicationArgs
+	int 0
+	>
+	bnz startup.dispatcher
+	err
+startup.dispatcher:
+	txna ApplicationArgs 0
+	btoi
+	switch startup.auction_test.start startup.auction_test.bidder startup.auction_test.finalize
+	err
+startup.auction_test.start:
+	txn Sender
+	callsub auction_test.start
+	return
+startup.auction_test.bidder:
+	txn Sender
+	txna ApplicationArgs 2
+	callsub auction_test.bidder
+	return
+startup.auction_test.finalize:
+	txn Sender
+	callsub auction_test.finalize
+	return
+auction_test.start:
+	proto 1 1
+	load 0
+	load 1
+	load 2
+	frame_dig -1
+	store 0
+	pushbytes 0x05476F6C6638
+	pushint 160
+	uncover 1
+	itob
+	uncover 1
+	concat
+	concat
+	store 1
+	load 0
+	pushint 20000
+	callsub asset.withdraw
+	store 2
+	load 0
+	load 2
+	load 1
+	callsub auction_with_item.start_auction
+	b auction_test.start$exit
+auction_test.start$exit:
+	cover 3
+	store 2
+	store 1
+	store 0
+	retsub
+auction_test.bidder:
+	proto 2 1
+	load 0
+	load 1
+	load 2
+	load 3
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+auction_test.bidder$0:
+	load 0
+	pushint 20001
+	callsub asset.withdraw
+	store 2
+	load 0
+	load 1
+	load 2
+	callsub auction_with_item.bid
+	b auction_test.bidder$0
+	load 0
+	load 1
+	callsub auction_with_item.retrieve_prize
+	store 3
+	load 0
+	load 3
+	uncover 0
+	itob
+	concat
+	pushbytes 0x02
+	swap
+	app_local_put
+	b auction_test.bidder$exit
+auction_test.bidder$exit:
+	cover 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+auction_test.finalize:
+	proto 1 1
+	load 0
+	frame_dig -1
+	store 0
+	load 0
+	callsub auction_with_item.finalize_auction
+	b auction_test.finalize$exit
+auction_test.finalize$exit:
+	cover 1
+	store 0
+	retsub
+opcode.balance:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.app_global_get:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.app_global_get_bytes:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.app_global_get_u64:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.app_global_put:
+	proto 2 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	retsub
+opcode.app_global_put_bytes:
+	proto 2 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	retsub
+opcode.app_global_put_u64:
+	proto 2 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	retsub
+opcode.app_local_get:
+	proto 2 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	retsub
+opcode.app_local_get_bytes:
+	proto 2 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	retsub
+opcode.app_local_get_u64:
+	proto 2 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	retsub
+opcode.app_local_put:
+	proto 3 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	retsub
+opcode.app_local_put_bytes:
+	proto 3 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	retsub
+opcode.app_local_put_u64:
+	proto 3 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	retsub
+opcode.asset_holding_get_AssetBalance:
+	proto 2 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	retsub
+opcode.asset_holding_get_AssetFrozen:
+	proto 2 1
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	retsub
+opcode.asset_params_get_AssetName:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.btoi:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.btoi_bool:
+	proto 1 1
+	load 0
+	frame_dig -1
+	store 0
+	load 0
+	btoi
+	pushint 1
+	==
+	b opcode.btoi_bool$exit
+opcode.btoi_bool$exit:
+	cover 1
+	store 0
+	retsub
+opcode.global_CurrentApplicationAddress:
+	proto 0 1
+	retsub
+opcode.global_CurrentApplicationID:
+	proto 0 1
+	retsub
+opcode.global_GroupSize:
+	proto 0 1
+	retsub
+opcode.global_LatestTimestamp:
+	proto 0 1
+	retsub
+opcode.global_MaxTxnLife:
+	proto 0 1
+	retsub
+opcode.global_MinBalance:
+	proto 0 1
+	retsub
+opcode.global_MinTxnFee:
+	proto 0 1
+	retsub
+opcode.itob:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itob_bool:
+	proto 1 1
+	load 0
+	load 1
+	frame_dig -1
+	store 0
+	load 0
+	bz opcode.itob_bool$7
+	pushint 1
+	itob
+	store 1
+opcode.itob_bool$5:
+	load 1
+	b opcode.itob_bool$exit
+opcode.itob_bool$7:
+	pushint 0
+	itob
+	store 1
+	b opcode.itob_bool$5
+opcode.itob_bool$exit:
+	cover 2
+	store 1
+	store 0
+	retsub
+opcode.itxn_begin:
+	proto 0 1
+	retsub
+opcode.itxn_field_Amount:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_AssetAmount:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_AssetCloseTo:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_AssetReceiver:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_AssetSender:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_Decimals:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_DefaultFrozen:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_Fee:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_GenesisID:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_Name:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_Receiver:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_Sender:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_Total:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_Type:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_UnitName:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_field_XferAsset:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+opcode.itxn_submit:
+	proto 0 1
+	retsub
+opcode.txn_CreatedAssetID:
+	proto 0 1
+	retsub
+opcode.txn_NumAssets:
+	proto 0 1
+	retsub
+opcode.txn_Sender:
+	proto 0 1
+	retsub
+opcode.txnas_Assets:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+utils.address_of_signer:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+utils.bytes_of_address:
+	proto 1 1
+	frame_dig -1
+	store 0
+	retsub
+utils.name_of:
+	proto 0 1
+	retsub
+utils.retrieve_asset_id:
+	proto 0 1
+	load 0
+	load 1
+	load 2
+	load 3
+	UNSUPPORTED_NATIVE[utils::name_of]
+	store 0
+	txn NumAssets
+	store 1
+	pushint 0
+	store 2
+utils.retrieve_asset_id$6:
+	load 2
+	load 1
+	<
+	bz utils.retrieve_asset_id$25
+	load 2
+	txnas Assets
+	store 3
+	load 3
+	asset_params_get AssetName
+	load 0
+	==
+	bz utils.retrieve_asset_id$20
+	load 3
+	b utils.retrieve_asset_id$exit
+utils.retrieve_asset_id$20:
+	load 2
+	pushint 1
+	+
+	store 2
+	b utils.retrieve_asset_id$6
+utils.retrieve_asset_id$25:
+	b utils.retrieve_asset_id$28
+	pushint 0
+	b utils.retrieve_asset_id$exit
+utils.retrieve_asset_id$28:
+	pushint 0
+	err
+utils.retrieve_asset_id$exit:
+	cover 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+transaction.asset_config:
+	proto 6 1
+	load 0
+	load 1
+	load 2
+	load 3
+	load 4
+	load 5
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	frame_dig -4
+	store 3
+	frame_dig -5
+	store 4
+	frame_dig -6
+	store 5
+	load 0
+	load 1
+	load 2
+	load 3
+	load 4
+	load 5
+	callsub transaction.init_asset_config
+	itxn_submit
+	b transaction.asset_config$exit
+transaction.asset_config$exit:
+	cover 6
+	store 5
+	store 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+transaction.asset_optin:
+	proto 3 1
+	load 0
+	load 1
+	load 2
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	load 0
+	load 1
+	load 2
+	callsub transaction.init_asset_transfer
+	itxn_submit
+	b transaction.asset_optin$exit
+transaction.asset_optin$exit:
+	cover 3
+	store 2
+	store 1
+	store 0
+	retsub
+transaction.asset_transfer:
+	proto 4 1
+	load 0
+	load 1
+	load 2
+	load 3
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	frame_dig -4
+	store 3
+	load 0
+	load 1
+	load 3
+	callsub transaction.init_asset_transfer
+	pushbytes 0x0000000000000000000000000000000000000000000000000000000000000000
+	itxn_field AssetSender
+	load 2
+	itxn_field AssetAmount
+	itxn_submit
+	b transaction.asset_transfer$exit
+transaction.asset_transfer$exit:
+	cover 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+transaction.init_asset_config:
+	proto 6 1
+	load 0
+	load 1
+	load 2
+	load 3
+	load 4
+	load 5
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	frame_dig -4
+	store 3
+	frame_dig -5
+	store 4
+	frame_dig -6
+	store 5
+	load 0
+	pushint 100
+	pushbytes 0x0461636667
+	callsub transaction.init_header
+	load 1
+	itxn_field Total
+	load 2
+	itxn_field Decimals
+	load 3
+	itxn_field DefaultFrozen
+	load 4
+	itxn_field Name
+	load 5
+	itxn_field UnitName
+	b transaction.init_asset_config$exit
+transaction.init_asset_config$exit:
+	cover 6
+	store 5
+	store 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+transaction.init_asset_transfer:
+	proto 3 1
+	load 0
+	load 1
+	load 2
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	load 0
+	pushint 100
+	pushbytes 0x056178666572
+	callsub transaction.init_header
+	load 1
+	itxn_field XferAsset
+	load 2
+	itxn_field AssetReceiver
+	b transaction.init_asset_transfer$exit
+transaction.init_asset_transfer$exit:
+	cover 3
+	store 2
+	store 1
+	store 0
+	retsub
+transaction.init_header:
+	proto 3 1
+	load 0
+	load 1
+	load 2
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	itxn_begin
+	load 1
+	itxn_field Fee
+	load 2
+	itxn_field Type
+	load 0
+	itxn_field Sender
+	b transaction.init_header$exit
+transaction.init_header$exit:
+	cover 3
+	store 2
+	store 1
+	store 0
+	retsub
+transaction.init_pay:
+	proto 3 1
+	load 0
+	load 1
+	load 2
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	load 0
+	pushint 100
+	pushbytes 0x03706179
+	callsub transaction.init_header
+	load 1
+	itxn_field Receiver
+	load 2
+	itxn_field Amount
+	b transaction.init_pay$exit
+transaction.init_pay$exit:
+	cover 3
+	store 2
+	store 1
+	store 0
+	retsub
+transaction.pay:
+	proto 3 1
+	load 0
+	load 1
+	load 2
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	load 0
+	load 1
+	load 2
+	callsub transaction.init_pay
+	itxn_submit
+	b transaction.pay$exit
+transaction.pay$exit:
+	cover 3
+	store 2
+	store 1
+	store 0
+	retsub
+asset.value:
+	proto 1 1
+	load 0
+	frame_dig -1
+	store 0
+	load 0
+	pushbytes 0x80080008
+	callsub ReadRef
+	b asset.value$exit
+asset.value$exit:
+	cover 1
+	store 0
+	retsub
+asset.create:
+	proto 5 1
+	load 0
+	load 1
+	load 2
+	load 3
+	load 4
+	load 5
+	load 6
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	frame_dig -4
+	store 3
+	frame_dig -5
+	store 4
+	load 0
+	store 5
+	UNSUPPORTED_NATIVE[utils::name_of]
+	store 6
+	load 5
+	load 1
+	load 2
+	load 3
+	load 6
+	load 4
+	callsub transaction.asset_config
+	txn CreatedAssetID
+	load 1
+	load 5
+	uncover 2
+	uncover 2
+	uncover 2
+	concat
+	concat
+	concat
+	b asset.create$exit
+asset.create$exit:
+	cover 7
+	store 6
+	store 5
+	store 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+asset.transfer:
+	proto 3 1
+	load 0
+	load 1
+	load 2
+	load 3
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	load 0
+	load 2
+	callsub asset.withdraw
+	store 3
+	load 1
+	load 3
+	callsub asset.deposit
+	b asset.transfer$exit
+asset.transfer$exit:
+	cover 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+asset.deposit:
+	proto 2 1
+	load 0
+	load 1
+	load 2
+	load 3
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	load 1
+	dup
+	extract 0 8
+	swap
+	dup
+	extract 8 8
+	swap
+	dup
+	extract 16 32
+	swap
+	pop
+	pop
+	store 2
+	store 3
+	txn Sender
+	load 3
+	load 2
+	load 0
+	callsub transaction.asset_transfer
+	b asset.deposit$exit
+asset.deposit$exit:
+	cover 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+asset.withdraw:
+	proto 2 1
+	load 0
+	load 1
+	load 2
+	load 3
+	load 4
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	callsub utils.retrieve_asset_id
+	store 2
+	load 0
+	store 3
+	load 1
+	load 3
+	load 2
+	asset_holding_get AssetBalance
+	<=
+	bz asset.withdraw$23
+	global CurrentApplicationAddress
+	store 4
+	load 3
+	load 2
+	load 1
+	load 4
+	callsub transaction.asset_transfer
+	load 2
+	load 1
+	load 4
+	uncover 2
+	uncover 2
+	uncover 2
+	concat
+	concat
+	concat
+	b asset.withdraw$exit
+asset.withdraw$23:
+	pushint 1
+	err
+asset.withdraw$exit:
+	cover 5
+	store 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+asset.split:
+	proto 2 1
+	load 0
+	load 1
+	load 2
+	load 3
+	load 4
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	load 0
+	dup
+	extract 0 8
+	swap
+	dup
+	extract 8 8
+	swap
+	dup
+	extract 16 32
+	swap
+	pop
+	store 2
+	store 3
+	store 4
+	load 4
+	load 3
+	load 1
+	-
+	load 2
+	uncover 2
+	uncover 2
+	uncover 2
+	concat
+	concat
+	concat
+	load 4
+	load 3
+	load 2
+	uncover 2
+	uncover 2
+	uncover 2
+	concat
+	concat
+	concat
+	b asset.split$exit
+asset.split$exit:
+	cover 5
+	store 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+auction_with_item.bid:
+	proto 3 1
+	load 0
+	load 1
+	load 2
+	load 3
+	load 4
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	load 1
+	pushbytes 0x0100
+	swap
+	concat
+	store 3
+	load 3
+	pushbytes 0x80280020
+	callsub ReadRef
+	pushbytes 0x01
+	dup2
+	app_local_get
+	cover 2
+	app_local_del
+	dup
+	extract 0 8
+	btoi
+	swap
+	pop
+	store 4
+	load 3
+	pushbytes 0x80480001
+	callsub ReadRef
+	bnz auction_with_item.bid$40
+	pushbytes 0x0002
+	callsub asset.value
+	pushbytes 0x0004
+	callsub asset.value
+	>
+	bz auction_with_item.bid$34
+	load 3
+	pushbytes 0x80280020
+	callsub ReadRef
+	load 4
+	callsub asset.deposit
+	load 0
+	load 3
+	pushbytes 0x80280020
+	callsub WriteRef
+	load 0
+	load 2
+	uncover 0
+	itob
+	concat
+	pushbytes 0x01
+	swap
+	app_local_put
+	b auction_with_item.bid$exit
+auction_with_item.bid$34:
+	load 0
+	pop
+	load 3
+	pop
+	pushint 2
+	err
+auction_with_item.bid$40:
+	load 0
+	pop
+	load 3
+	pop
+	pushint 1
+	err
+auction_with_item.bid$exit:
+	cover 5
+	store 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+auction_with_item.finalize_auction:
+	proto 1 1
+	load 0
+	load 1
+	load 2
+	load 3
+	frame_dig -1
+	store 0
+	load 0
+	store 1
+	load 1
+	pushbytes 0x0100
+	swap
+	concat
+	store 2
+	load 1
+	load 2
+	pushbytes 0x80080020
+	callsub ReadRef
+	==
+	bz auction_with_item.finalize_auction$26
+	pushint 1
+	load 2
+	pushbytes 0x80480001
+	callsub WriteRef
+	load 2
+	pushbytes 0x80280020
+	callsub ReadRef
+	pushbytes 0x01
+	dup2
+	app_local_get
+	cover 2
+	app_local_del
+	dup
+	extract 0 8
+	btoi
+	swap
+	pop
+	store 3
+	load 1
+	load 3
+	callsub asset.deposit
+	b auction_with_item.finalize_auction$exit
+auction_with_item.finalize_auction$26:
+	load 2
+	pop
+	pushint 3
+	err
+auction_with_item.finalize_auction$exit:
+	cover 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+auction_with_item.start_auction:
+	proto 3 1
+	load 0
+	load 1
+	load 2
+	load 3
+	load 4
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	frame_dig -3
+	store 2
+	load 0
+	store 3
+	load 2
+	load 3
+	load 3
+	pushint 0
+	uncover 3
+	itob
+	uncover 3
+	uncover 3
+	uncover 3
+	concat
+	concat
+	concat
+	concat
+	store 4
+	load 0
+	load 4
+	pushbytes 0x00
+	swap
+	app_local_put
+	load 0
+	load 1
+	uncover 0
+	itob
+	concat
+	pushbytes 0x01
+	swap
+	app_local_put
+	b auction_with_item.start_auction$exit
+auction_with_item.start_auction$exit:
+	cover 5
+	store 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+auction_with_item.retrieve_prize:
+	proto 2 1
+	load 0
+	load 1
+	load 2
+	load 3
+	load 4
+	load 5
+	load 6
+	frame_dig -1
+	store 0
+	frame_dig -2
+	store 1
+	load 0
+	store 2
+	load 1
+	pushbytes 0x00
+	dup2
+	app_local_get
+	cover 2
+	app_local_del
+	dup
+	extract 0 8
+	btoi
+	swap
+	dup
+	extract 8 32
+	swap
+	dup
+	extract 40 32
+	swap
+	dup
+	extract 72 1
+	swap
+	pop
+	store 3
+	store 4
+	store 5
+	store 6
+	load 1
+	load 5
+	==
+	bz auction_with_item.retrieve_prize$28
+	load 2
+	load 4
+	==
+	bz auction_with_item.retrieve_prize$26
+	load 3
+	pushint 1
+	==
+	bz auction_with_item.retrieve_prize$24
+	load 6
+	b auction_with_item.retrieve_prize$exit
+auction_with_item.retrieve_prize$24:
+	pushint 5
+	err
+auction_with_item.retrieve_prize$26:
+	pushint 4
+	err
+auction_with_item.retrieve_prize$28:
+	pushint 3
+	err
+auction_with_item.retrieve_prize$exit:
+	cover 7
+	store 6
+	store 5
+	store 4
+	store 3
+	store 2
+	store 1
+	store 0
+	retsub
+
+ReadRef:
+	// preamble
+	proto 1 1	
+	// slot 255 used: reference (arg1)
+	// slot 254 used: counter
+	// slot 253 used: deserialize flag
+	frame_dig -1
+	store 255		 // save arg1
+
+	// clear used slots
+	pushint 0		 
+	store 253
+
+	// switch
+	load 255
+	extract 0 1	 // get kind of ref
+	btoi
+	switch ReadRef.k0 ReadRef.k1
+
+// kind 0x00: local
+ReadRef.k0: 
+	load 255
+	extract 1 1	// scratch space slot
+	btoi	
+	loads				// push dereferenced value
+	load 255
+	pushint 2		// path offset
+	b ReadRef.setup_path
+
+// kind 0x01: global
+ReadRef.k1:	
+	load 255
+	dup
+	extract 2 32	// address
+	swap
+	extract 1 1	 // key = struct number
+	app_local_get // push dereferenced value
+	load 255
+	pushint 34		// path offset
+
+// stack: offset, whole reference, data 
+ReadRef.setup_path:
+	pushint 0		// till end of array
+	extract3		 // push path part
+	dup				 
+	len
+	pushint 4
+	/						// path size = array len / 4
+	store 254		// save path size used as counter
+
+// stack: path, data
+consume_path:
+	load 254
+	bz ReadRef.consume_path_quit
+
+	dupn 2					
+	cover 3					// stack: path, path, data, path
+	extract 0 2			// extract offset (2 bytes)
+	dup
+	store 253				// save offset highest byte for later
+	pushbytes 0x7fff // clear bit 15
+	b&
+	btoi						 // convert offset into uint64
+	swap
+	pushint 2				// offset of length 
+	extract_uint16	 // extract length (2 bytes) as uint64
+	extract3				 // extract field from data
+	swap
+	extract 4 0			// extract rest of path
+
+	// decrement counter
+	load 254
+	pushint 1
+	-
+	store 254
+	b ReadRef.consume_path
+ReadRef.consume_path_quit:
+	pop							// discard path, leave data on top
+
+// stack: data
+ReadRef.deserialize:
+	load 253				 // recover offset as 2 bytes
+	pushbytes 0x8000 // mask bit 15
+	b&
+	bz ReadRef.exit
+	btoi						 // deserialize if bit 15 is set
+
+ReadRef.exit:
+	frame_bury 0
+	retsub
+
+
+// -----------------------------------------------------
+
+
+WriteRef:
+	// preamble
+	proto 2 0
+	// slot 255 used: reference (arg1)
+	// slot 254 used: counter
+	// slot 253 used: deserialize flag
+	// slot 252 used: new value (arg2)
+	// slot 251 used: offset accumulator
+	// slot 250 used: kind of ref
+	frame_dig -1
+	store 255		 // save arg1
+	frame_dig -2
+	store 252		 // save arg2
+
+	// clear used slots
+	pushint 0		 
+	store 253
+	pushint 0
+	store 251
+
+	// switch
+	load 255
+	extract 0 1	 // get kind of ref
+	btoi
+	dup
+	store 250
+	switch WriteRef.k0 WriteRef.k1
+
+// kind 0x00: local
+WriteRef.k0: 
+	load 255		 // load reference
+	extract 1 1	// scratch space slot
+	btoi				 // index byte becomes uint64
+	loads				// push dereferenced value
+	load 255
+	pushint 2		// path offset
+	b WriteRef.setup_path
+
+// kind 0x01: global
+WriteRef.k1:	
+	load 255		 // load reference
+	dup
+	extract 2 32	// address
+	swap
+	extract 1 1	 // key = struct number
+	app_local_get // push dereferenced value
+	load 255
+	pushint 34		// path offset
+
+// stack: offset, whole reference, data 
+WriteRef.setup_path:
+	pushint 0		// till end of array
+	extract3		 // push path part
+	dup				 
+	len
+	pushint 4
+	/						// path size = array len / 4
+	store 254		// save path size used as counter
+
+// stack: path, data
+WriteRef.consume_path:
+	load 254		 // load loop counter
+	bz WriteRef.consume_path_quit
+
+	dup
+	extract 0 2			// field offset as 2 bytes
+	dup
+	store 253				// save offset highest byte for later
+	pushbytes 0x7fff // clear bit 15
+	b&
+	btoi
+	load 251
+	+
+	store 251
+	extract 4 0
+
+	// decrement counter
+	load 254
+	pushint 1
+	-
+	store 254
+	b WriteRef.consume_path
+WriteRef.consume_path_quit:
+	pop							// discard path and leave data on top 
+
+// stack: data
+WriteRef.serialize:
+	load 252				 // load arg2
+	load 253				 // recover offset as 2 bytes
+	pushbytes 0x8000 // mask bit 15
+	b&
+	btoi
+	bz WriteRef.update
+	itob						 // serialize arg2 if bit 15 is set
+
+// stack: arg2(bytes), data
+WriteRef.update:
+	load 251				// load offset accumulator
+	swap
+	replace3				// update the relevant part of data
+
+	load 250				// load kind of ref
+	switch WriteRef.k0_update WriteRef.k1_update
+	
+// kind 0x00: local
+WriteRef.k0_update: 
+	load 255				// load reference
+	extract 1 1		 // scratch space slot
+	btoi						// index byte becomes uint64
+	swap
+	stores					// push dereferenced value
+	b WriteRef.exit	
+
+// kind 0x01: global
+WriteRef.k1_update: 
+	load 255				// load reference
+	dup
+	extract 2 32		// address
+	swap
+	extract 1 1		 // key = struct number
+	uncover 2
+	app_local_put	 // push dereferenced value
+ 
+WriteRef.exit:
+	retsub

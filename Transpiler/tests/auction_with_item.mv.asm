@@ -14,7 +14,7 @@ struct Bid<phantom AssetType> has key {
 	assets: Asset<AssetType>
 }
 
-public entry bid<AssetType, ItemType: store>(acc: &signer, auctioneer: address, assets: Asset<AssetType>) /* def_idx: 0 */ {
+public bid<AssetType, ItemType: store>(acc: &signer, auctioneer: address, assets: Asset<AssetType>) /* def_idx: 0 */ {
 L3:	auction: &mut Auction<ItemType>
 L4:	top_bid: Asset<AssetType>
 B0:
@@ -69,7 +69,7 @@ B4:
 	44: LdU64(1)
 	45: Abort
 }
-public entry finalize_auction<AssetType, ItemType: store>(acc: &signer) /* def_idx: 1 */ {
+public finalize_auction<AssetType, ItemType: store>(acc: &signer) /* def_idx: 1 */ {
 L1:	auctioneer: address
 L2:	auction: &mut Auction<ItemType>
 L3:	top_bid: Asset<AssetType>
@@ -107,7 +107,7 @@ B2:
 	28: LdU64(3)
 	29: Abort
 }
-public entry start_auction<AssetType, ItemType: store>(acc: &signer, base: Asset<AssetType>, item: ItemType) /* def_idx: 2 */ {
+public start_auction<AssetType, ItemType: store>(acc: &signer, base: Asset<AssetType>, item: ItemType) /* def_idx: 2 */ {
 L3:	auctioneer: address
 L4:	auction: Auction<ItemType>
 B0:
@@ -129,7 +129,7 @@ B0:
 	15: MoveToGeneric[1](Bid<AssetType>)
 	16: Ret
 }
-public entry retrieve_prize<AssetType, ItemType: store>(acc: &signer, auctioneer: address): ItemType /* def_idx: 3 */ {
+public retrieve_prize<AssetType, ItemType: store>(acc: &signer, auctioneer: address): ItemType /* def_idx: 3 */ {
 L2:	self: address
 L3:	expired: bool
 L4:	top_bidder: address

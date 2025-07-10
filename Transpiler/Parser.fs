@@ -907,7 +907,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 83 "Parser.fsy"
-                                                       { quals = _1; id = _2; args = _4; ret = _6; body = List.toArray _7 } 
+                                                       { quals = _1; name = _2; args = _4; ret = _6; body = List.toArray _7 } 
                    )
 # 83 "Parser.fsy"
                  : 'gentype_funn));
