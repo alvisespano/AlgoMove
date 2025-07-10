@@ -15,7 +15,6 @@ let parse_from_TextReader args = parse_from_TextReader __syntax_error args
 let mutable private cwd = IO.Directory.GetCurrentDirectory ()
 
 let load_and_parse_module filename =
-    Report.debug "cwd: %s" cwd
     let filename = sprintf "%s/%s" cwd filename
     use fstr = new IO.FileStream (filename, IO.FileMode.Open)
     use rd = new IO.StreamReader (fstr)

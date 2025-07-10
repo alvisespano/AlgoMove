@@ -78,7 +78,7 @@ type ctx = {
 let touch_label (L : T.label) = ignore <| L.Force (); L
 let qid_label mid fid = sprintf "%s%c%s" mid Config.teal_label_module_sep fid
 let sublabel mid fid sub = sprintf "%s%c%s" (qid_label mid fid) Config.teal_sublabel_sep sub
-let start_label mid fid = lazy (qid_label mid fid) |> touch_label
+let solid_label mid fid = lazy (qid_label mid fid) |> touch_label
 let exit_label mid fid = lazy (sublabel mid fid Config.teal_exit_sublabel)
 let instr_label mid fid i = lazy (sublabel mid fid (string i)) 
 
@@ -104,6 +104,7 @@ let private emit_call_native mid fid =
                 match fid with 
                 | "address_of_signer"
                 | "bytes_of_address" -> ()
+                // TODO workaround for name_of<T>()
                 | _ -> raise UnsupportedNative
 
             | "opcode" ->
@@ -193,10 +194,10 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
 
-        | M.Call (NonNative (mid, id), _, _) -> yield T.Callsub (start_label mid id)
+        | M.Call (NonNative (mid, id), _, _) -> yield T.Callsub (solid_label mid id)
         | M.Call (Native (mid, id), _, _) -> yield! emit_call_native mid id
 
-        | M.ReadRef -> yield T.Callsub (lazy "ReadRef")         // TODO include read_ref/write_ref functions in emitted code
+        | M.ReadRef -> yield T.Callsub (lazy "ReadRef")        
         | M.WriteRef -> yield T.Callsub (lazy "WriteRef")
         | M.FreezeRef -> ()
 
@@ -237,7 +238,7 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
             yield T.Swap
             yield T.Concat
 
-        | M.BorrowLoc i -> yield T.PushBytes [| byte 0x00; i |]
+        | M.BorrowLoc i -> yield T.PushBytes [| byte 0x00; byte i |]
         
         | M.Exists id -> 
             yield T.Txn "ApplicationID"
@@ -283,16 +284,16 @@ let private emit_fun (P : M.Module) (F : M.Fun) =
                 labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.id i |]
             }
         // preamble
-        yield Some (start_label P.name F.id), T.Proto (uint n, 1u)
+        yield Some (solid_label P.name F.id), T.Proto (uint n, 1u)
         let Mo = F.max_local_index
         match Mo with
         | None -> ()
         | Some M ->
             for i = 0u to M do 
-                yield None, T.Load (byte i)
+                yield None, T.Load i
         for i = 0 to n - 1 do 
             yield None, T.FrameDig (-(i + 1))
-            yield None, T.Store (byte i)
+            yield None, T.Store (uint i)
             
         // body            
         yield! emit_instrs ctx P F.body
@@ -303,7 +304,7 @@ let private emit_fun (P : M.Module) (F : M.Fun) =
         | Some M ->
             yield Some ctx.exit_label, T.Cover (M + 1u)
             for i = int M downto 0 do 
-                yield None, T.Store (byte i)
+                yield None, T.Store (uint i)
         yield None, T.Retsub
     ]
 
@@ -330,25 +331,39 @@ and import_module (_, id) =
             Report.error "disassembled import file not found: %s.\nPlease disassemble all dependencies and put them in the same folder with the main module." filename
 
 let emit_preamble (P : M.Module) =
-    [
-        yield Some (start_label P.name P.find_main.id), T.Txn "ApplicationArgs"
-        // TODO emit TEAL preamble and epilogue
-    ]
+    let funs = List.filter (fun (F : M.Fun) -> List.contains M.qual.Entry F.quals) P.funs
+    if funs.Length = 0 then
+        Report.warn "no entry function found in module '%s'. Generating all functions and no dispatcher in the preamble." P.name
+        false, []
+    else
+        Report.info "found %d entry functions in module '%s'" funs.Length P.name
+        true, [
+                yield Some (solid_label "startup" "dispatcher"), T.Txn "ApplicationArgs"
+                yield None, T.Btoi
+                yield None, T.Store 0u
+                for i = 0 to funs.Length - 1 do
+                    yield None, T.Load (uint 0)
+                    yield None, T.PushInt (uint64 i)
+                    yield None, T.Eq
+                    yield None, T.Bnz (solid_label P.name P.funs.[i].id)
+                yield None, T.Err
+              ]
 
-
-let emit_program (P : M.Module) : T.program =       
+let emit_program (P : M.Module) : T.program =
     [
-        yield None, T.Callsub (start_label P.name P.find_main.id)
-        yield None, T.PushInt 1UL
-        yield None, T.Return 
         yield! emit_module P
         // append imports
         for p in ImportCache do
             yield! p.Value |> snd
     ]
 
+let generate_program (P : M.Module) : string =
+    let has_dispatcher, preamble = emit_preamble P
+    let main = emit_program P
+    (if has_dispatcher then TealLib.header_dispatcher else TealLib.header_no_dispatcher) + T.pretty_program preamble + T.pretty_program main + TealLib.epilogue
 
-// TODO emit preamble part:
+
+
 (*
 // Dispatch logic
 dispatch_start:

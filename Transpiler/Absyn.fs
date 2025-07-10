@@ -39,7 +39,7 @@ module Move =
 
     type capab = Key | Store | Copy | Drop
 
-    type index = byte
+    type index = uint
 
     type opcode = 
         | Nop
@@ -100,7 +100,6 @@ module Move =
 
 module Teal =
    
-    type scratch = uint8
     type label = string Lazy
 
     type opcode =
@@ -158,8 +157,8 @@ module Teal =
         | Retsub
 
         // Storage/State
-        | Load of scratch
-        | Store of scratch
+        | Load of uint
+        | Store of uint
         | LoadS
         | StoreS
 
@@ -271,16 +270,14 @@ module Teal =
         | Proto (a, b) -> sprintf "proto %d %d" a b
         | Return -> "return"
 
-    let pretty_instr ((lbl, op): instr) : string =
+    let pretty_instr ((lo, op) : instr) =
         let op = pretty_opcode op
-        match lbl with
+        match lo with
         | Some l when l.IsValueCreated -> sprintf "%s:\n\t%s" l.Value op
         | _ -> sprintf "\t%s" op
 
-    let pretty_program (prog: program) : string =
-        prog
-        |> List.map pretty_instr
-        |> String.concat "\n"
+    let pretty_program (prog: program) =
+        (List.map pretty_instr prog |> String.concat "\n") + "\n"
 
 
 

@@ -152,7 +152,7 @@ tys:
   | ty COMMA tys                { $1 :: $3 }
 
 index:
-    NUM                         { byte $1 }
+    NUM                         { uint $1 }
 
 label:
     NUM                         { uint $1 }

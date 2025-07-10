@@ -28,10 +28,9 @@
 	  </Compile>
     <Compile Include="Report.fs" />
     <Compile Include="Parsing.fs" />
+    <Compile Include="Teal.fs" />
     <Compile Include="Gen.fs" />
 	  <Compile Include="Main.fs" />
-	  <None Include="preamble.teal" />
-	  <None Include="epilogue.teal" />
   </ItemGroup>
 
   <ItemGroup />

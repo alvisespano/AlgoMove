@@ -1,3 +1,22 @@
+﻿module AlgoMove.Transpiler.TealLib
+
+let header_dispatcher = """
+#pragma version 6
+
+txn ApplicationArgs 0
+len
+int 0
+>
+bnz startup.dispatcher
+err
+"""
+
+let header_no_dispatcher = """
+#pragma version 6
+
+"""
+
+let epilogue = """
 ReadRef:
   // preamble
   proto 1 1  
@@ -218,3 +237,4 @@ WriteRef.k1_update:
  
 WriteRef.exit:
   retsub
+"""

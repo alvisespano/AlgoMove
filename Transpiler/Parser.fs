@@ -1368,7 +1368,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 155 "Parser.fsy"
-                                                       byte _1 
+                                                       uint _1 
                    )
 # 155 "Parser.fsy"
                  : 'gentype_index));
