@@ -15,8 +15,9 @@ module Move =
     type ty = 
         | Bool
         | U8
+        | U16
+        | U32
         | U64
-        | U128
         | Address
         | Vector of ty
         | Typename of id
@@ -73,9 +74,14 @@ module Move =
         | FreezeRef
         | LdBool of bool
         | LdU8 of byte
+        | LdU16 of uint16
+        | LdU32 of uint32
         | LdU64 of uint64
-        | LdU128 of UInt128
         | LdConst of ty * int list
+        | CastU8
+        | CastU16
+        | CastU32
+        | CastU64
         | Pack of id    // the struct typename must be local and cannot be a qid
         | Unpack of id
         | Br of bool option * label
@@ -86,7 +92,6 @@ module Move =
         | Exists of id
         | MoveTo of id
         | MoveFrom of id
-        | VecLen of index
 
     //type instr = label * opcode
 
@@ -104,7 +109,7 @@ module Teal =
 
     type opcode =
         | Label of label
-        | UnsupportedOpcode of Move.opcode
+        //| UnsupportedOpcode of Move.opcode
         | UnsupportedNative of string
 
         // Stack manipulation
@@ -191,6 +196,7 @@ module Teal =
         | Btoi
         | Len
         | Extract of uint16 * uint16
+        | Extract3
         | Concat
         | Err
         | Proto of uint * uint
@@ -202,7 +208,7 @@ module Teal =
     let pretty_opcode (op: opcode) =
         match op with
         | Label l -> if l.IsValueCreated then sprintf "%s:" l.Value else ""
-        | UnsupportedOpcode mop -> sprintf "UNSUPPORTED_OPCODE[%A]" mop
+        //| UnsupportedOpcode mop -> sprintf "UNSUPPORTED_OPCODE[%A]" mop
         | UnsupportedNative s -> sprintf "UNSUPPORTED_NATIVE[%s]" s
         | PushInt n -> sprintf "pushint %d" n
         | PushBytes b -> sprintf "pushbytes 0x%s" (System.BitConverter.ToString(b).Replace("-", ""))
@@ -269,6 +275,7 @@ module Teal =
         | Btoi -> "btoi"
         | Len -> "len"
         | Extract (s, l)-> sprintf "extract %d %d" s l
+        | Extract3 -> "extract3"
         | Concat -> "concat"
         | Err -> "err"
         | Proto (a, b) -> sprintf "proto %d %d" a b

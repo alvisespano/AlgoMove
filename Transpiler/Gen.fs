@@ -11,49 +11,47 @@ module T = Teal
 // type augmentations
 //
 
+type M.ty with
+    member ty.is_integral =
+        match ty with
+        | M.ty.Bool
+        | M.ty.U8 
+        | M.ty.U16
+        | M.ty.U32 
+        | M.ty.U64 -> true
+        | _ -> false
+
 type M.Module with
     member P.struct_by_name id = P.structs.[int <| P.index_of_struct id]
 
     member P.index_of_struct id = List.findIndex (fun (s : M.Struct) -> s.id = id) P.structs |> byte
 
-    member P.offset_of_field sid fid : uint16 =
-        let S = P.struct_by_name sid
+    member P.offset_of_struct_field sid fid = P.offset_of_field (P.struct_by_name sid).fields fid
+
+    member P.offset_of_field fields fid : uint16 =
         let rec R = function
-            | [] -> unexpected_case __SOURCE_FILE__ __LINE__ "Struct %s has no fields" sid
+            | [] -> 0us
             | (id, ty) :: fields -> 
                 if id = fid then 0us
                 else P.len_of_ty ty + R fields 
-        R S.fields |> uint16
+        R fields |> uint16
 
     member P.len_of_ty ty : uint16 =
         match ty with
         | M.ty.Bool -> 1us
         | M.ty.U8 -> 1us
+        | M.ty.U16 -> 2us
+        | M.ty.U32 -> 4us
         | M.ty.U64 -> 8us
-        | M.ty.U128 -> 16us
         | M.ty.Address -> 32us
         | M.ty.Typename s ->
             try
                 let S = P.struct_by_name s
                 List.sumBy (fun (_, ty) -> P.len_of_ty ty) S.fields |> uint16
-            with _ -> Report.unsupported "typename %s is a generic type. Defaulting length to %d bytes" s Config.generic_field_default_length
+            with _ -> Report.warn "typename %s is a generic type. Generics are not supported. Defaulting length to %d bytes" s Config.generic_field_default_length
                       uint16 Config.generic_field_default_length
 
         | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Type %A should not appear in structs" ty
-
-    member P.find_main =
-        match List.filter (fun (F : M.Fun) -> List.contains M.qual.Entry F.quals) P.funs with
-        | [] ->
-            let F = P.funs.Head
-            Report.warn "no entry function found. Picking first available: %s" F.name
-            F
-
-        | [F] -> F
-
-        | F1 :: _ as Fs -> 
-            match List.tryFind (fun (F : M.Fun) -> F.name = "main") Fs with
-            | Some F -> F
-            | None -> F1
 
 type M.Fun with
     member F.max_local_index =
@@ -64,7 +62,7 @@ type M.Fun with
             | M.StLoc i -> Some i
             | _ -> None) 
         |> function [||] -> None 
-                  | l -> Some (uint (Array.max l))
+                  | l    -> Some (uint (Array.max l))
 
 
 // context and labels
@@ -87,15 +85,13 @@ let instr_label mid fid i = lazy (sublabel_name mid fid (string i))
 // transpiler functions
 //
 
-let private ImportCache = System.Collections.Generic.Dictionary<M.id, M.Module * T.opcode list>()
+let private ImportCache = System.Collections.Generic.Dictionary<M.id, _>()
 
 let private TouchedFunCache = System.Collections.Generic.HashSet<M.id * M.id>()
 
 let private emit_call mid id =
     TouchedFunCache.Add (mid, id) |> ignore
-    [
-        yield T.Callsub (solid_label mid id)
-    ]
+    [ T.Callsub (solid_label mid id) ]
 
 
 exception private UnsupportedNative
@@ -146,10 +142,11 @@ let private emit_call_native mid fid =
             | _ -> raise UnsupportedNative
 
         with UnsupportedNative ->
-            Report.unsupported "native function %s.%s is not supported" mid fid
+            Report.error "native function %s.%s is not supported" mid fid
             yield T.UnsupportedNative (sprintf "%s::%s" mid fid)
     ]
-     
+
+
 
 let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
         
@@ -192,13 +189,20 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
         | M.Ge -> yield T.Ge
         | M.Pop -> yield T.Pop
         | M.Abort -> yield T.Err
-        | M.VecLen _ -> yield T.Len
         
         | M.Ret ->  yield T.B ctx.exit_label
                 
         | M.LdBool b -> yield T.PushInt (if b then 1UL else 0UL) 
-        | M.LdU8 b -> yield T.PushBytes [|b|]
-        | M.LdU64 u -> yield T.PushInt u
+        | M.LdU8 u  -> yield T.PushInt (uint64 u)
+        | M.LdU16 u -> yield T.PushInt (uint64 u)
+        | M.LdU32 u -> yield T.PushInt (uint64 u)
+        | M.LdU64 u -> yield T.PushInt (uint64 u)
+
+        | M.CastU8 
+        | M.CastU16 
+        | M.CastU32 
+        | M.CastU64 -> ()
+
         | M.Br (None, l) -> yield branch T.B l
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
@@ -210,10 +214,12 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
         | M.WriteRef -> yield T.Callsub (lazy "WriteRef")
         | M.FreezeRef -> ()
 
-        | M.LdU128 n -> yield T.UnsupportedOpcode op
-
         | M.LdConst ((M.ty.Address | M.ty.Vector M.ty.U8), nums) ->
             yield T.PushBytes (Array.ofList <| List.map byte nums)
+
+        | M.LdConst (ty, nums) ->
+            Report.error "constants of type %A is not supported" op
+            failwithf "unsupported constant type %A" ty
 
         | M.Pack id ->
             let S = P.struct_by_name id
@@ -221,7 +227,7 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
             if n > 0u then
                 for _, ty in S.fields do
                     yield T.Uncover (n - 1u)
-                    if ty.IsTypename then yield T.Itob
+                    if ty.is_integral then yield T.Itob
                 for i = 1u to n do
                     yield T.Concat
 
@@ -229,15 +235,15 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
             let S = P.struct_by_name id
             for x, ty in S.fields do
                 yield T.Dup
-                let d = P.offset_of_field id x
+                let d = P.offset_of_struct_field id x
                 let l = P.len_of_ty ty
                 yield T.Extract (d, l)
-                if ty.IsTypename then yield T.Btoi
+                if ty.is_integral then yield T.Btoi
                 yield T.Swap
             yield T.Pop
 
         | M.BorrowField (sid, fid, fty) ->
-            let d = P.offset_of_field sid fid ||| (if fty.IsTypename then 0us else 0x8000us)
+            let d = P.offset_of_struct_field sid fid ||| (if fty.is_integral then 0us else 0x8000us)   // set bit 15 is deserialization is needed
             let l = P.len_of_ty fty
             let uint16_to_bytes (n : uint16) = [| byte (n >>> 8); byte (n &&& 0x00ffus) |]
             yield T.PushBytes [| yield! uint16_to_bytes d; yield! uint16_to_bytes l |]
@@ -267,10 +273,6 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
             yield T.AppLocalGet
             yield T.Cover 2u
             yield T.AppLocalDel
-
-        | _ -> yield T.UnsupportedOpcode op 
-
-
     ]
 
 let private emit_instrs ctx P (instrs : M.opcode array) =
@@ -287,24 +289,22 @@ let private emit_instrs ctx P (instrs : M.opcode array) =
     ]
 
 let private emit_fun (P : M.Module) (F : M.Fun) =
-    // TODO emit all functions on a lazy list and force its evaluation only if the function is called
-    //if TouchedFunCache.Contains (P.name, F.name) then
-        [
-            let n = F.args.Length
+    F.name, [
+            let N = F.args.Length
             let ctx = {
                     exit_label = exit_label P.name F.name
                     labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.name i |]
                 }
             // preamble
             yield T.Label (solid_label P.name F.name)
-            yield T.Proto (uint n, 1u)
-            let Mo = F.max_local_index
-            match Mo with
-            | None -> ()
-            | Some M ->
-                for i = 0u to M do 
-                    yield T.Load i
-            for i = 0 to n - 1 do 
+            yield T.Proto (uint N, 1u)
+            let M = 
+                match F.max_local_index with
+                | None -> -1
+                | Some M -> max (int M) (N - 1)
+            for i = 0 to M do 
+                yield T.Load (uint i)
+            for i = 0 to N - 1 do 
                 yield T.FrameDig (-(i + 1))
                 yield T.Store (uint i)
             
@@ -312,29 +312,22 @@ let private emit_fun (P : M.Module) (F : M.Fun) =
             yield! emit_instrs ctx P F.body
  
             // epilogue
-            match Mo with
-            | None -> ()
-            | Some M ->
-                yield T.Label ctx.exit_label
-                yield T.Cover (M + 1u)
-                for i = int M downto 0 do 
-                    yield T.Store (uint i)
+            yield T.Label ctx.exit_label
+            yield T.Cover (uint <| M + 1)
+            for i = int M downto 0 do 
+                yield T.Store (uint i)
             yield T.Retsub
         ]
-    //else 
-    //    Report.debug "function %s.%s is never called. Skipping." P.name F.name
-    //    []
-
 
 
 let rec emit_module (P : M.Module) =           
-    // do imports BEFORE
+    // process imports BEFORE
     for qid in P.imports do
         import_module qid
     [
         // functions
         for F in P.funs do
-            yield! emit_fun P F
+            yield emit_fun P F
     ]
 
 and import_module (_, id) =
@@ -345,7 +338,12 @@ and import_module (_, id) =
             let P = Parsing.load_and_parse_module filename
             ImportCache.[id] <- P, emit_module P
         with :? System.IO.FileNotFoundException as e ->
-            Report.error "disassembled import file not found: %s.\nPlease disassemble all dependencies and put them in the same folder with the main module." filename
+            Report.error "disassembled import file not found: %s.\nPlease disassemble all dependencies and put them in the same folder with the main disassembled module." filename
+
+let (|Signer|_|) (ty : M.ty) =
+    match ty with
+    | M.ty.Ref (M.ty.Typename "signer") -> Some ()
+    | _ -> None
 
 let emit_preamble (P : M.Module) =
     let funs = List.filter (fun (F : M.Fun) -> List.contains M.qual.Entry F.quals) P.funs
@@ -356,67 +354,52 @@ let emit_preamble (P : M.Module) =
         Report.info "found %d entry functions in module '%s'" funs.Length P.name
         true, [
                 yield T.Label (solid_label "startup" "dispatcher")
+                // shorten ApplicationArgs byte array by removing the head
+                yield T.Txn "ApplicationArgs"
+                yield T.Len
+                yield T.PushInt 1UL
+                yield T.Swap
+                yield T.Extract3 
+                yield T.Store 0u
+                // dispatch function
                 yield T.Txna ("ApplicationArgs", 0u)
                 yield T.Btoi
                 let labels = [ for F in funs do yield solid_label "startup" (qid_label_name P.name F.name) ]
                 yield T.Switch labels
                 yield T.Err
                 for l, F in List.zip labels funs do
-                    let signer = List.tryFindIndex (function (_, M.ty.Ref (M.ty.Typename "signer")) -> true | _ -> false) F.args
                     yield T.Label l
+                    // deserialize application arguments
+                    let args_no_signer = List.filter (function _, Signer -> false | _ -> true) F.args
                     for i = 0 to F.args.Length - 1 do
                         match F.args.[i] with
-                        | _, M.ty.Ref (M.ty.Typename "signer") -> yield T.Txn "Sender"
-                        | _ -> yield T.Txna ("ApplicationArgs", uint (i + 1))   
+                        | _, Signer -> yield T.Txn "Sender"
+                        | x, ty -> 
+                            yield T.Load 0u
+                            let d = P.offset_of_field args_no_signer x
+                            let l = P.len_of_ty ty
+                            yield T.Extract (d, l)
+                            if ty.is_integral then yield T.Btoi
+                    // call the entry function
                     yield! emit_call P.name F.name
                     yield T.Return
               ]
 
 let emit_program (P : M.Module) : T.program =
     [
-        yield! emit_module P
-        // append imports
-        for p in ImportCache do
-            yield! p.Value |> snd
+        // emit entire main module
+        for _, f in emit_module P do yield! f
+        // emit only touched functions in imports
+        for kv in ImportCache do
+            let mid, (_, fs) = kv.Key, kv.Value
+            for fid, f in fs do
+                if TouchedFunCache.Contains (mid, fid) then
+                    yield! f
+                else 
+                    Report.debug "function %s.%s is never called and will not be emitted" mid fid
     ]
 
 let generate_program (P : M.Module) : string =
     let has_dispatcher, preamble = emit_preamble P
     let main = emit_program P
     (if has_dispatcher then TealLib.header_dispatcher else TealLib.header_no_dispatcher) + T.pretty_program preamble + T.pretty_program main + TealLib.epilogue
-
-
-
-(*
-// Dispatch logic
-dispatch_start:
-txn ApplicationArgs 0
-btoi
-store 0          // index ← funzione selezionata
-
-load 0
-int 0
-==
-bnz funzione_0
-
-load 0
-int 1
-==
-bnz funzione_1
-
-// ... aggiungi altri casi qui
-
-err // se nessun caso matcha
-
-// Funzione 0
-funzione_0:
-    // inserisci qui la logica della funzione 0
-    int 1
-    return
-
-// Funzione 1
-funzione_1:
-    // inserisci qui la logica della funzione 1
-    int 1
-    return
-    *)

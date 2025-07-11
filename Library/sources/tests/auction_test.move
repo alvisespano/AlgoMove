@@ -2,6 +2,7 @@ module algomove::auction_test {
 
 	use algomove::auction_with_item as au;
 	use algomove::asset::{Self};
+	use algomove::utils;
 
 	struct EUR {}
 
@@ -34,5 +35,5 @@ module algomove::auction_test {
 		let car = au::retrieve_prize<EUR, Car>(acc, auc);
 		move_to(acc, Prize { car });
 	}
-	
+
 }

@@ -7,6 +7,12 @@
 	bnz startup.dispatcher
 	err
 startup.dispatcher:
+	txn ApplicationArgs
+	len
+	pushint 1
+	swap
+	extract3
+	store 0
 	txna ApplicationArgs 0
 	btoi
 	switch startup.auction_test.start startup.auction_test.bidder startup.auction_test.finalize
@@ -17,7 +23,8 @@ startup.auction_test.start:
 	return
 startup.auction_test.bidder:
 	txn Sender
-	txna ApplicationArgs 2
+	load 0
+	extract 0 32
 	callsub auction_test.bidder
 	return
 startup.auction_test.finalize:
@@ -34,8 +41,8 @@ auction_test.start:
 	pushbytes 0x05476F6C6638
 	pushint 160
 	uncover 1
-	itob
 	uncover 1
+	itob
 	concat
 	concat
 	store 1
@@ -60,35 +67,47 @@ auction_test.bidder:
 	load 1
 	load 2
 	load 3
+	load 4
 	frame_dig -1
 	store 0
 	frame_dig -2
 	store 1
-auction_test.bidder$0:
-	load 0
 	pushint 20001
-	callsub asset.withdraw
 	store 2
+auction_test.bidder$2:
+	load 2
+	pushint 30000
+	<
+	bz auction_test.bidder$19
+	load 0
+	load 2
+	callsub asset.withdraw
+	store 3
 	load 0
 	load 1
-	load 2
+	load 3
 	callsub auction_with_item.bid
-	b auction_test.bidder$0
+	load 2
+	pushint 1000
+	+
+	store 2
+	b auction_test.bidder$2
+auction_test.bidder$19:
 	load 0
 	load 1
 	callsub auction_with_item.retrieve_prize
-	store 3
+	store 4
 	load 0
-	load 3
+	load 4
 	uncover 0
-	itob
 	concat
 	pushbytes 0x02
 	swap
 	app_local_put
 	b auction_test.bidder$exit
 auction_test.bidder$exit:
-	cover 4
+	cover 5
+	store 4
 	store 3
 	store 2
 	store 1
@@ -105,296 +124,6 @@ auction_test.finalize:
 auction_test.finalize$exit:
 	cover 1
 	store 0
-	retsub
-opcode.balance:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.app_global_get:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.app_global_get_bytes:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.app_global_get_u64:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.app_global_put:
-	proto 2 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	retsub
-opcode.app_global_put_bytes:
-	proto 2 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	retsub
-opcode.app_global_put_u64:
-	proto 2 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	retsub
-opcode.app_local_get:
-	proto 2 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	retsub
-opcode.app_local_get_bytes:
-	proto 2 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	retsub
-opcode.app_local_get_u64:
-	proto 2 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	retsub
-opcode.app_local_put:
-	proto 3 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	frame_dig -3
-	store 2
-	retsub
-opcode.app_local_put_bytes:
-	proto 3 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	frame_dig -3
-	store 2
-	retsub
-opcode.app_local_put_u64:
-	proto 3 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	frame_dig -3
-	store 2
-	retsub
-opcode.asset_holding_get_AssetBalance:
-	proto 2 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	retsub
-opcode.asset_holding_get_AssetFrozen:
-	proto 2 1
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	retsub
-opcode.asset_params_get_AssetName:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.btoi:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.btoi_bool:
-	proto 1 1
-	load 0
-	frame_dig -1
-	store 0
-	load 0
-	btoi
-	pushint 1
-	==
-	b opcode.btoi_bool$exit
-opcode.btoi_bool$exit:
-	cover 1
-	store 0
-	retsub
-opcode.global_CurrentApplicationAddress:
-	proto 0 1
-	retsub
-opcode.global_CurrentApplicationID:
-	proto 0 1
-	retsub
-opcode.global_GroupSize:
-	proto 0 1
-	retsub
-opcode.global_LatestTimestamp:
-	proto 0 1
-	retsub
-opcode.global_MaxTxnLife:
-	proto 0 1
-	retsub
-opcode.global_MinBalance:
-	proto 0 1
-	retsub
-opcode.global_MinTxnFee:
-	proto 0 1
-	retsub
-opcode.itob:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itob_bool:
-	proto 1 1
-	load 0
-	load 1
-	frame_dig -1
-	store 0
-	load 0
-	bz opcode.itob_bool$7
-	pushint 1
-	itob
-	store 1
-opcode.itob_bool$5:
-	load 1
-	b opcode.itob_bool$exit
-opcode.itob_bool$7:
-	pushint 0
-	itob
-	store 1
-	b opcode.itob_bool$5
-opcode.itob_bool$exit:
-	cover 2
-	store 1
-	store 0
-	retsub
-opcode.itxn_begin:
-	proto 0 1
-	retsub
-opcode.itxn_field_Amount:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_AssetAmount:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_AssetCloseTo:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_AssetReceiver:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_AssetSender:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_Decimals:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_DefaultFrozen:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_Fee:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_GenesisID:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_Name:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_Receiver:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_Sender:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_Total:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_Type:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_UnitName:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_field_XferAsset:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-opcode.itxn_submit:
-	proto 0 1
-	retsub
-opcode.txn_CreatedAssetID:
-	proto 0 1
-	retsub
-opcode.txn_NumAssets:
-	proto 0 1
-	retsub
-opcode.txn_Sender:
-	proto 0 1
-	retsub
-opcode.txnas_Assets:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-utils.address_of_signer:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-utils.bytes_of_address:
-	proto 1 1
-	frame_dig -1
-	store 0
-	retsub
-utils.name_of:
-	proto 0 1
 	retsub
 utils.retrieve_asset_id:
 	proto 0 1
@@ -477,29 +206,6 @@ transaction.asset_config$exit:
 	store 5
 	store 4
 	store 3
-	store 2
-	store 1
-	store 0
-	retsub
-transaction.asset_optin:
-	proto 3 1
-	load 0
-	load 1
-	load 2
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	frame_dig -3
-	store 2
-	load 0
-	load 1
-	load 2
-	callsub transaction.init_asset_transfer
-	itxn_submit
-	b transaction.asset_optin$exit
-transaction.asset_optin$exit:
-	cover 3
 	store 2
 	store 1
 	store 0
@@ -656,117 +362,17 @@ transaction.init_pay$exit:
 	store 1
 	store 0
 	retsub
-transaction.pay:
-	proto 3 1
-	load 0
-	load 1
-	load 2
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	frame_dig -3
-	store 2
-	load 0
-	load 1
-	load 2
-	callsub transaction.init_pay
-	itxn_submit
-	b transaction.pay$exit
-transaction.pay$exit:
-	cover 3
-	store 2
-	store 1
-	store 0
-	retsub
 asset.value:
 	proto 1 1
 	load 0
 	frame_dig -1
 	store 0
 	load 0
-	pushbytes 0x80080008
+	pushbytes 0x00080008
 	callsub ReadRef
 	b asset.value$exit
 asset.value$exit:
 	cover 1
-	store 0
-	retsub
-asset.create:
-	proto 5 1
-	load 0
-	load 1
-	load 2
-	load 3
-	load 4
-	load 5
-	load 6
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	frame_dig -3
-	store 2
-	frame_dig -4
-	store 3
-	frame_dig -5
-	store 4
-	load 0
-	store 5
-	UNSUPPORTED_NATIVE[utils::name_of]
-	store 6
-	load 5
-	load 1
-	load 2
-	load 3
-	load 6
-	load 4
-	callsub transaction.asset_config
-	txn CreatedAssetID
-	load 1
-	load 5
-	uncover 2
-	uncover 2
-	uncover 2
-	concat
-	concat
-	concat
-	b asset.create$exit
-asset.create$exit:
-	cover 7
-	store 6
-	store 5
-	store 4
-	store 3
-	store 2
-	store 1
-	store 0
-	retsub
-asset.transfer:
-	proto 3 1
-	load 0
-	load 1
-	load 2
-	load 3
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	frame_dig -3
-	store 2
-	load 0
-	load 2
-	callsub asset.withdraw
-	store 3
-	load 1
-	load 3
-	callsub asset.deposit
-	b asset.transfer$exit
-asset.transfer$exit:
-	cover 4
-	store 3
-	store 2
-	store 1
 	store 0
 	retsub
 asset.deposit:
@@ -782,9 +388,11 @@ asset.deposit:
 	load 1
 	dup
 	extract 0 8
+	btoi
 	swap
 	dup
 	extract 8 8
+	btoi
 	swap
 	dup
 	extract 16 32
@@ -838,7 +446,9 @@ asset.withdraw:
 	load 1
 	load 4
 	uncover 2
+	itob
 	uncover 2
+	itob
 	uncover 2
 	concat
 	concat
@@ -848,60 +458,6 @@ asset.withdraw$23:
 	pushint 1
 	err
 asset.withdraw$exit:
-	cover 5
-	store 4
-	store 3
-	store 2
-	store 1
-	store 0
-	retsub
-asset.split:
-	proto 2 1
-	load 0
-	load 1
-	load 2
-	load 3
-	load 4
-	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	load 0
-	dup
-	extract 0 8
-	swap
-	dup
-	extract 8 8
-	swap
-	dup
-	extract 16 32
-	swap
-	pop
-	store 2
-	store 3
-	store 4
-	load 4
-	load 3
-	load 1
-	-
-	load 2
-	uncover 2
-	uncover 2
-	uncover 2
-	concat
-	concat
-	concat
-	load 4
-	load 3
-	load 2
-	uncover 2
-	uncover 2
-	uncover 2
-	concat
-	concat
-	concat
-	b asset.split$exit
-asset.split$exit:
 	cover 5
 	store 4
 	store 3
@@ -937,12 +493,11 @@ auction_with_item.bid:
 	app_local_del
 	dup
 	extract 0 8
-	btoi
 	swap
 	pop
 	store 4
 	load 3
-	pushbytes 0x80480001
+	pushbytes 0x00480001
 	callsub ReadRef
 	bnz auction_with_item.bid$40
 	pushbytes 0x0002
@@ -963,7 +518,6 @@ auction_with_item.bid:
 	load 0
 	load 2
 	uncover 0
-	itob
 	concat
 	pushbytes 0x01
 	swap
@@ -1014,7 +568,7 @@ auction_with_item.finalize_auction:
 	bz auction_with_item.finalize_auction$26
 	pushint 1
 	load 2
-	pushbytes 0x80480001
+	pushbytes 0x00480001
 	callsub WriteRef
 	load 2
 	pushbytes 0x80280020
@@ -1026,7 +580,6 @@ auction_with_item.finalize_auction:
 	app_local_del
 	dup
 	extract 0 8
-	btoi
 	swap
 	pop
 	store 3
@@ -1066,10 +619,10 @@ auction_with_item.start_auction:
 	load 3
 	pushint 0
 	uncover 3
+	uncover 3
+	uncover 3
+	uncover 3
 	itob
-	uncover 3
-	uncover 3
-	uncover 3
 	concat
 	concat
 	concat
@@ -1083,7 +636,6 @@ auction_with_item.start_auction:
 	load 0
 	load 1
 	uncover 0
-	itob
 	concat
 	pushbytes 0x01
 	swap
@@ -1120,7 +672,6 @@ auction_with_item.retrieve_prize:
 	app_local_del
 	dup
 	extract 0 8
-	btoi
 	swap
 	dup
 	extract 8 32
@@ -1130,6 +681,7 @@ auction_with_item.retrieve_prize:
 	swap
 	dup
 	extract 72 1
+	btoi
 	swap
 	pop
 	store 3
@@ -1169,6 +721,8 @@ auction_with_item.retrieve_prize$exit:
 	store 1
 	store 0
 	retsub
+
+// ---- AlgoMove TealLib Epilogue ----
 
 ReadRef:
 	// preamble
@@ -1260,10 +814,6 @@ ReadRef.deserialize:
 ReadRef.exit:
 	frame_bury 0
 	retsub
-
-
-// -----------------------------------------------------
-
 
 WriteRef:
 	// preamble

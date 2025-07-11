@@ -20,11 +20,11 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
        BRA KET SQBRA SQKET CURBRA CURKET
        COLON DOT COMMA COLON2 SEMICOLON
        MOVLOC CPYLOC STLOC CALL 
-       LDU8 LDU128 LDU64 LDCONST LDTRUE LDFALSE
+       LDU8 LDU16 LDU32 LDU64 LDCONST LDTRUE LDFALSE CASTU8 CASTU16 CASTU32 CASTU64
        BRANCH BRTRUE BRFALSE NOP
        ADD SUB MUL DIV MOD EQ NEQ LT LE GT GE BOR BAND OR AND XOR NOT SHL SHR POP ABORT
        READREF WRITEREF FREEZEREF 
-       RET VECLEN
+       RET 
        BORROWLOC BORROWFIELD BORROWGLOBAL 
        PACK UNPACK EXISTS MOVETO MOVEFROM
 %token EOF
@@ -80,7 +80,7 @@ funs:
 funn:
     quals ID BRA args KET
     return_ty
-    optbody                     { { quals = $1; id = $2; args = $4; ret = $6; body = List.toArray $7 } }   
+    optbody                     { { quals = $1; name = $2; args = $4; ret = $6; body = List.toArray $7 } }   
 
 optbody:
     CURBRA body CURKET          { $2 }
@@ -173,10 +173,10 @@ opcode:
 
   | CALL qid BRA argtys KET return_ty                       { Call ($2, $4, $6) }
   | LDU8 BRA NUM KET                                        { LdU8 (byte $3) }
+  | LDU16 BRA NUM KET                                       { LdU16 (uint16 $3) }
+  | LDU32 BRA NUM KET                                       { LdU32 (uint32 $3) }
   | LDU64 BRA NUM KET                                       { LdU64 (uint64 $3) }
-  | LDU128 BRA NUM KET                                      { LdU128 (System.UInt128.Parse $3) }
   | LDCONST SQBRA NUM SQKET BRA const KET                   { LdConst $6 }   
-  | VECLEN BRA index KET                                    { VecLen $3 }
 
 const:
     const_ty COLON SQBRA nums SQKET    { ty.of_const_ty $1, $4 }
@@ -240,4 +240,9 @@ opcodes_no_imm:
   | LDTRUE                                        { LdBool true }
   | LDFALSE                                       { LdBool false }
   | RET                                           { Ret }
+
+  | CASTU8                                       { CastU8 }
+  | CASTU16                                      { CastU16 }
+  | CASTU32                                      { CastU32 }
+  | CASTU64                                      { CastU64 }
   

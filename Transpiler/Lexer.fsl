@@ -84,7 +84,6 @@ and tokenize = parse
 	| "Pop"			{ POP }
 	| "Call"		{ CALL }
 	| "Abort"		{ ABORT }
-	| "VecLen"		{ VECLEN }
 	
 	| "ReadRef"		{ READREF }
 	| "WriteRef"	{ WRITEREF }
@@ -93,9 +92,14 @@ and tokenize = parse
 	| "LdTrue"		{ LDTRUE }
 	| "LdFalse"		{ LDFALSE }
 	| "LdU8"		{ LDU8 }
+	| "LdU16"		{ LDU16 }
+	| "LdU32"		{ LDU32 }
 	| "LdU64"		{ LDU64 }
-	| "LdU128"		{ LDU128 }
 	| "LdConst"		{ LDCONST }
+	| "CastU8"		{ CASTU8 }
+	| "CastU16"		{ CASTU16 }
+	| "CastU32"		{ CASTU32 }
+	| "CastU64"		{ CASTU64 }
 	 
 	| "Branch"		{ BRANCH }
 	| "BrTrue"		{ BRTRUE }

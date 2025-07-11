@@ -16,6 +16,8 @@ let header_no_dispatcher = """
 """
 
 let epilogue = """
+// ---- AlgoMove TealLib Epilogue ----
+
 ReadRef:
 	// preamble
 	proto 1 1	
@@ -106,10 +108,6 @@ ReadRef.deserialize:
 ReadRef.exit:
 	frame_bury 0
 	retsub
-
-
-// -----------------------------------------------------
-
 
 WriteRef:
 	// preamble

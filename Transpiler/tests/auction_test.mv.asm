@@ -34,28 +34,41 @@ B0:
 	12: Ret
 }
 entry public bidder(acc: &signer, auc: address) /* def_idx: 1 */ {
-L2:	a: Asset<EUR>
-L3:	car: Car
+L2:	amt: u64
+L3:	a: Asset<EUR>
+L4:	car: Car
 B0:
-	0: CopyLoc[0](acc: &signer)
-	1: LdU64(20001)
-	2: Call asset::withdraw<EUR>(&signer, u64): Asset<EUR>
-	3: StLoc[2](a: Asset<EUR>)
-	4: CopyLoc[0](acc: &signer)
-	5: CopyLoc[1](auc: address)
-	6: MoveLoc[2](a: Asset<EUR>)
-	7: Call auction_with_item::bid<EUR, Car>(&signer, address, Asset<EUR>)
-	8: Branch(0)
+	0: LdU64(20001)
+	1: StLoc[2](amt: u64)
 B1:
-	9: CopyLoc[0](acc: &signer)
-	10: MoveLoc[1](auc: address)
-	11: Call auction_with_item::retrieve_prize<EUR, Car>(&signer, address): Car
-	12: StLoc[3](car: Car)
-	13: MoveLoc[0](acc: &signer)
-	14: MoveLoc[3](car: Car)
-	15: Pack[2](Prize)
-	16: MoveTo[2](Prize)
-	17: Ret
+	2: CopyLoc[2](amt: u64)
+	3: LdU64(30000)
+	4: Lt
+	5: BrFalse(19)
+B2:
+	6: CopyLoc[0](acc: &signer)
+	7: CopyLoc[2](amt: u64)
+	8: Call asset::withdraw<EUR>(&signer, u64): Asset<EUR>
+	9: StLoc[3](a: Asset<EUR>)
+	10: CopyLoc[0](acc: &signer)
+	11: CopyLoc[1](auc: address)
+	12: MoveLoc[3](a: Asset<EUR>)
+	13: Call auction_with_item::bid<EUR, Car>(&signer, address, Asset<EUR>)
+	14: MoveLoc[2](amt: u64)
+	15: LdU64(1000)
+	16: Add
+	17: StLoc[2](amt: u64)
+	18: Branch(2)
+B3:
+	19: CopyLoc[0](acc: &signer)
+	20: MoveLoc[1](auc: address)
+	21: Call auction_with_item::retrieve_prize<EUR, Car>(&signer, address): Car
+	22: StLoc[4](car: Car)
+	23: MoveLoc[0](acc: &signer)
+	24: MoveLoc[4](car: Car)
+	25: Pack[2](Prize)
+	26: MoveTo[2](Prize)
+	27: Ret
 }
 entry public finalize(acc: &signer) /* def_idx: 2 */ {
 B0:
