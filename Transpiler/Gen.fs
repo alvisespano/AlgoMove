@@ -68,9 +68,10 @@ type M.Fun with
 // context and labels
 //
             
-type ctx = {
+type context = {
     exit_label : T.label
     labels : T.label array
+    ty_params : M.ty_param list
 }
 
 let touch_label (L : T.label) = ignore <| L.Force (); L
@@ -91,11 +92,21 @@ let private ImportCache = System.Collections.Generic.Dictionary<M.id, _>()
 
 let private TouchedFunCache = System.Collections.Generic.HashSet<M.id * M.id>()
 
-let emit_call mid id ty_args =
+let emit_call ty_params mid id (ty_args : M.ty list) =
     TouchedFunCache.Add (mid, id) |> ignore
-    [ T.Callsub (solid_label mid id) ]
+    [ 
+        let N = List.length ty_params
+        for ty in ty_args do
+            match ty with
+            | M.ty.Cons (id, []) when List.contains id ty_params -> 
+                let i = List.findIndex ((=) id) ty_params
+                yield T.FrameDig (-(N - 1 - i) - 1)
 
-let emit_call_native mid fid =
+            | _ -> yield T.PushBytes (sprintf "%O" ty |> Seq.map byte |> Array.ofSeq)
+        yield T.Callsub (solid_label mid id) 
+    ]
+
+let emit_call_native ty_params mid fid ty_args =
 
     let (|Regex|_|) pattern input =
         let m = Regex.Match (input, pattern)
@@ -108,7 +119,7 @@ let emit_call_native mid fid =
                 match fid with 
                 | "address_of_signer"
                 | "bytes_of_address" -> ()
-                // TODO workaround for name_of<T>()
+                | "name_of" -> yield T.FrameDig -1  // has 1 type parameter only, just return the type witness that is the typename already
                 | _ -> raise UnsupportedNative
 
             | "opcode" ->
@@ -206,8 +217,8 @@ let emit_opcode ctx (P : M.Module) (op : M.opcode) =
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
 
-        | M.Call (NonNative (mid, id), ty_args) -> yield! emit_call mid id ty_args
-        | M.Call (Native (mid, id), ty_args) -> yield! emit_call_native mid id
+        | M.Call (NonNative (mid, id), ty_args) -> yield! emit_call ctx.ty_params mid id ty_args
+        | M.Call (Native (mid, id), ty_args) -> yield! emit_call_native ctx.ty_params mid id ty_args
 
         | M.ReadRef -> yield T.Callsub (lazy "ReadRef")        
         | M.WriteRef -> yield T.Callsub (lazy "WriteRef")
@@ -290,13 +301,15 @@ let emit_instrs ctx P (instrs : M.opcode array) =
 let emit_fun (P : M.Module) (F : M.Fun) =
     F.name, [
             let N = F.paramss.Length
+            let TN = F.ty_params.Length
             let ctx = {
                     exit_label = exit_label P.name F.name
                     labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.name i |]
+                    ty_params = F.ty_params
                 }
             // preamble
             yield T.Label (solid_label P.name F.name)
-            yield T.Proto (uint N, 1u)
+            yield T.Proto (uint (N + TN), 1u)
             let M = 
                 match F.max_local_index with
                 | None -> -1
@@ -304,7 +317,7 @@ let emit_fun (P : M.Module) (F : M.Fun) =
             for i = 0 to M do 
                 yield T.Load (uint i)
             for i = 0 to N - 1 do 
-                yield T.FrameDig (-(i + 1))
+                yield T.FrameDig (-i - (TN + 1))
                 yield T.Store (uint <| N - i - 1)
             
             // body            
@@ -380,7 +393,7 @@ let emit_preamble (P : M.Module) =
                             yield T.Extract (d, l)
                             if ty.is_integral then yield T.Btoi
                     // call the entry function
-                    yield! emit_call P.name F.name []
+                    yield! emit_call [] P.name F.name []
                     yield T.Return
               ]
 

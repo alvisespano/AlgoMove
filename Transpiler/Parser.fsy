@@ -97,8 +97,8 @@ ty_params:
   | ty_param COMMA ty_params    { $1 :: $3 }
 
 ty_param:
-    ID                          { $1, [] }
-  | ID COLON ty_param_capabs    { $1, $3 }
+    ID                          { $1 }
+  | ID COLON ty_param_capabs    { $1 }
 
 ty_param_capabs:
     capab                       { [$1] }

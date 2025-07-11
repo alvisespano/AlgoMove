@@ -20,7 +20,6 @@ module Move =
         | U64
         | Address
         | Cons of id * ty list
-        //| Typename of id
         | Ref of ty
         | MutRef of ty 
         | Tuple of ty list
@@ -33,9 +32,22 @@ module Move =
 
         member self.raw =
             match self with
-            //| Typename id
             | Cons (id, _) -> id
             | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Raw type of non-struct '%A'" self
+
+        override self.ToString () =
+            match self with
+            | Bool -> "bool"
+            | U8 -> "u8"
+            | U16 -> "u16"
+            | U32 -> "u32"
+            | U64 -> "u64"
+            | Address -> "address"
+            | Cons (s, []) -> s
+            | Cons (s, tys) -> sprintf "%s<%s>" s (mappen_strings (sprintf "%O") "," tys)
+            | Ref ty -> sprintf "&%O" ty
+            | MutRef ty -> sprintf "&%O" ty 
+            | Tuple tys -> mappen_strings (sprintf "%O") "," tys
 
     type field = id * ty
     type param = field
@@ -43,6 +55,7 @@ module Move =
     [<RequireQualifiedAccess>]
     type qual = Public | Entry | Native
 
+    // TODO wipe these capabs as they are not needed in our translation
     type capab = Key | Store | Copy | Drop
 
     type index = uint
@@ -98,7 +111,7 @@ module Move =
         | MoveTo of id
         | MoveFrom of id
 
-    type ty_param = id * capab list
+    type ty_param = id
 
     type Fun = { quals : qual list; name : id; ty_params : ty_param list; paramss : param list; ret : ty option; body : opcode array }
 

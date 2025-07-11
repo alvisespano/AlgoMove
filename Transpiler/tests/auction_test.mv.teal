@@ -48,11 +48,14 @@ auction_test.start:
 	store 1
 	load 0
 	pushint 20000
+	pushbytes 0x455552
 	callsub asset.withdraw
 	store 2
 	load 0
 	load 2
 	load 1
+	pushbytes 0x455552
+	pushbytes 0x436172
 	callsub auction_with_item.start_auction
 	b auction_test.start$exit
 auction_test.start$exit:
@@ -81,11 +84,14 @@ auction_test.bidder$2:
 	bz auction_test.bidder$19
 	load 0
 	load 2
+	pushbytes 0x455552
 	callsub asset.withdraw
 	store 3
 	load 0
 	load 1
 	load 3
+	pushbytes 0x455552
+	pushbytes 0x436172
 	callsub auction_with_item.bid
 	load 2
 	pushint 1000
@@ -95,6 +101,8 @@ auction_test.bidder$2:
 auction_test.bidder$19:
 	load 0
 	load 1
+	pushbytes 0x455552
+	pushbytes 0x436172
 	callsub auction_with_item.retrieve_prize
 	store 4
 	load 0
@@ -119,6 +127,8 @@ auction_test.finalize:
 	frame_dig -1
 	store 0
 	load 0
+	pushbytes 0x455552
+	pushbytes 0x436172
 	callsub auction_with_item.finalize_auction
 	b auction_test.finalize$exit
 auction_test.finalize$exit:
@@ -126,12 +136,12 @@ auction_test.finalize$exit:
 	store 0
 	retsub
 utils.retrieve_asset_id:
-	proto 0 1
+	proto 1 1
 	load 0
 	load 1
 	load 2
 	load 3
-	UNSUPPORTED_NATIVE[utils::name_of]
+	frame_dig -1
 	store 0
 	txn NumAssets
 	store 1
@@ -363,9 +373,9 @@ transaction.init_pay$exit:
 	store 0
 	retsub
 asset.value:
-	proto 1 1
+	proto 2 1
 	load 0
-	frame_dig -1
+	frame_dig -2
 	store 0
 	load 0
 	pushbytes 0x00080008
@@ -376,14 +386,14 @@ asset.value$exit:
 	store 0
 	retsub
 asset.deposit:
-	proto 2 1
+	proto 3 1
 	load 0
 	load 1
 	load 2
 	load 3
-	frame_dig -1
-	store 1
 	frame_dig -2
+	store 1
+	frame_dig -3
 	store 0
 	load 1
 	dup
@@ -415,16 +425,17 @@ asset.deposit$exit:
 	store 0
 	retsub
 asset.withdraw:
-	proto 2 1
+	proto 3 1
 	load 0
 	load 1
 	load 2
 	load 3
 	load 4
-	frame_dig -1
-	store 1
 	frame_dig -2
+	store 1
+	frame_dig -3
 	store 0
+	frame_dig -1
 	callsub utils.retrieve_asset_id
 	store 2
 	load 0
@@ -466,17 +477,17 @@ asset.withdraw$exit:
 	store 0
 	retsub
 auction_with_item.bid:
-	proto 3 1
+	proto 5 1
 	load 0
 	load 1
 	load 2
 	load 3
 	load 4
-	frame_dig -1
-	store 2
-	frame_dig -2
-	store 1
 	frame_dig -3
+	store 2
+	frame_dig -4
+	store 1
+	frame_dig -5
 	store 0
 	load 1
 	pushbytes 0x0100
@@ -501,8 +512,10 @@ auction_with_item.bid:
 	callsub ReadRef
 	bnz auction_with_item.bid$40
 	pushbytes 0x0002
+	frame_dig -2
 	callsub asset.value
 	pushbytes 0x0004
+	frame_dig -2
 	callsub asset.value
 	>
 	bz auction_with_item.bid$34
@@ -510,6 +523,7 @@ auction_with_item.bid:
 	pushbytes 0x80280020
 	callsub ReadRef
 	load 4
+	frame_dig -2
 	callsub asset.deposit
 	load 0
 	load 3
@@ -546,12 +560,12 @@ auction_with_item.bid$exit:
 	store 0
 	retsub
 auction_with_item.finalize_auction:
-	proto 1 1
+	proto 3 1
 	load 0
 	load 1
 	load 2
 	load 3
-	frame_dig -1
+	frame_dig -3
 	store 0
 	load 0
 	store 1
@@ -585,6 +599,7 @@ auction_with_item.finalize_auction:
 	store 3
 	load 1
 	load 3
+	frame_dig -2
 	callsub asset.deposit
 	b auction_with_item.finalize_auction$exit
 auction_with_item.finalize_auction$26:
@@ -600,17 +615,17 @@ auction_with_item.finalize_auction$exit:
 	store 0
 	retsub
 auction_with_item.start_auction:
-	proto 3 1
+	proto 5 1
 	load 0
 	load 1
 	load 2
 	load 3
 	load 4
-	frame_dig -1
-	store 2
-	frame_dig -2
-	store 1
 	frame_dig -3
+	store 2
+	frame_dig -4
+	store 1
+	frame_dig -5
 	store 0
 	load 0
 	store 3
@@ -650,7 +665,7 @@ auction_with_item.start_auction$exit:
 	store 0
 	retsub
 auction_with_item.retrieve_prize:
-	proto 2 1
+	proto 4 1
 	load 0
 	load 1
 	load 2
@@ -658,9 +673,9 @@ auction_with_item.retrieve_prize:
 	load 4
 	load 5
 	load 6
-	frame_dig -1
+	frame_dig -3
 	store 1
-	frame_dig -2
+	frame_dig -4
 	store 0
 	load 0
 	store 2
