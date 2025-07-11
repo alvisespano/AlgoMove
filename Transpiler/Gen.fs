@@ -142,7 +142,7 @@ let private emit_call_native mid fid =
             | _ -> raise UnsupportedNative
 
         with UnsupportedNative ->
-            Report.error "native function %s.%s is not supported" mid fid
+            Report.error "native function %s.%s is not yet supported" mid fid
             yield T.UnsupportedNative (sprintf "%s::%s" mid fid)
     ]
 
