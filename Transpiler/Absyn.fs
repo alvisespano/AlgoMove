@@ -20,7 +20,7 @@ module Move =
         | U64
         | Address
         | Cons of id * ty list
-        | Typename of id
+        //| Typename of id
         | Ref of ty
         | MutRef of ty 
         | Tuple of ty list
@@ -33,8 +33,8 @@ module Move =
 
         member self.raw =
             match self with
-            | Cons (id, _)
-            | Typename id -> id
+            //| Typename id
+            | Cons (id, _) -> id
             | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Raw type of non-struct '%A'" self
 
     type field = id * ty

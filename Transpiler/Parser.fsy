@@ -146,9 +146,9 @@ ty:
   | U64                         { ty.U64 }
   | BOOL                        { ty.Bool }
   | ADDRESS                     { ty.Address }
-  | ID                          { ty.Typename $1 }
   | AMP ty                      { ty.Ref $2 }
   | AMP MUT ty                  { ty.MutRef $3 }
+  | ID                          { ty.Cons ($1, []) }
   | ID ABRA ty_args AKET        { ty.Cons ($1, $3) }
 
 ty_args:

@@ -44,8 +44,7 @@ type M.Module with
         | M.ty.U32 -> 4us
         | M.ty.U64 -> 8us
         | M.ty.Address -> 32us
-        | M.ty.Cons (s, _)
-        | M.ty.Typename s ->
+        | M.ty.Cons (s, _) ->
             try
                 let S = P.struct_by_name s
                 List.sumBy (fun (_, ty) -> P.len_of_ty ty) S.fields |> uint16
@@ -342,7 +341,7 @@ and import_module (_, id) =
 
 let (|Signer|_|) (ty : M.ty) =
     match ty with
-    | M.ty.Ref (M.ty.Typename "signer") -> Some ()
+    | M.ty.Ref (M.ty.Cons ("signer", [])) -> Some ()
     | _ -> None
 
 let emit_preamble (P : M.Module) =
