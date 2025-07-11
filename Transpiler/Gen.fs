@@ -85,13 +85,13 @@ let instr_label mid fid i = lazy (sublabel_name mid fid (string i))
 // transpiler functions
 //
 
-exception private UnsupportedNative
+exception UnsupportedNative
 
 let private ImportCache = System.Collections.Generic.Dictionary<M.id, _>()
 
 let private TouchedFunCache = System.Collections.Generic.HashSet<M.id * M.id>()
 
-let emit_call mid id =
+let emit_call mid id ty_args =
     TouchedFunCache.Add (mid, id) |> ignore
     [ T.Callsub (solid_label mid id) ]
 
@@ -206,7 +206,7 @@ let emit_opcode ctx (P : M.Module) (op : M.opcode) =
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
 
-        | M.Call (NonNative (mid, id), ty_args) -> yield! emit_call mid id
+        | M.Call (NonNative (mid, id), ty_args) -> yield! emit_call mid id ty_args
         | M.Call (Native (mid, id), ty_args) -> yield! emit_call_native mid id
 
         | M.ReadRef -> yield T.Callsub (lazy "ReadRef")        
@@ -305,7 +305,7 @@ let emit_fun (P : M.Module) (F : M.Fun) =
                 yield T.Load (uint i)
             for i = 0 to N - 1 do 
                 yield T.FrameDig (-(i + 1))
-                yield T.Store (uint i)
+                yield T.Store (uint <| N - i - 1)
             
             // body            
             yield! emit_instrs ctx P F.body
@@ -380,7 +380,7 @@ let emit_preamble (P : M.Module) =
                             yield T.Extract (d, l)
                             if ty.is_integral then yield T.Btoi
                     // call the entry function
-                    yield! emit_call P.name F.name
+                    yield! emit_call P.name F.name []
                     yield T.Return
               ]
 
@@ -395,7 +395,7 @@ let emit_program (P : M.Module) : T.program =
                 if TouchedFunCache.Contains (mid, fid) then
                     yield! f
                 else 
-                    Report.debug "function %s.%s is never called and will not be emitted" mid fid
+                    Report.debug "function %s::%s is never called and will not be emitted" mid fid
     ]
 
 let generate_program (P : M.Module) : string =

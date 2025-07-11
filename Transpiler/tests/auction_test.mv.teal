@@ -69,9 +69,9 @@ auction_test.bidder:
 	load 3
 	load 4
 	frame_dig -1
-	store 0
-	frame_dig -2
 	store 1
+	frame_dig -2
+	store 0
 	pushint 20001
 	store 2
 auction_test.bidder$2:
@@ -181,17 +181,17 @@ transaction.asset_config:
 	load 4
 	load 5
 	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	frame_dig -3
-	store 2
-	frame_dig -4
-	store 3
-	frame_dig -5
-	store 4
-	frame_dig -6
 	store 5
+	frame_dig -2
+	store 4
+	frame_dig -3
+	store 3
+	frame_dig -4
+	store 2
+	frame_dig -5
+	store 1
+	frame_dig -6
+	store 0
 	load 0
 	load 1
 	load 2
@@ -217,13 +217,13 @@ transaction.asset_transfer:
 	load 2
 	load 3
 	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	frame_dig -3
-	store 2
-	frame_dig -4
 	store 3
+	frame_dig -2
+	store 2
+	frame_dig -3
+	store 1
+	frame_dig -4
+	store 0
 	load 0
 	load 1
 	load 3
@@ -250,17 +250,17 @@ transaction.init_asset_config:
 	load 4
 	load 5
 	frame_dig -1
-	store 0
-	frame_dig -2
-	store 1
-	frame_dig -3
-	store 2
-	frame_dig -4
-	store 3
-	frame_dig -5
-	store 4
-	frame_dig -6
 	store 5
+	frame_dig -2
+	store 4
+	frame_dig -3
+	store 3
+	frame_dig -4
+	store 2
+	frame_dig -5
+	store 1
+	frame_dig -6
+	store 0
 	load 0
 	pushint 100
 	pushbytes 0x0461636667
@@ -291,11 +291,11 @@ transaction.init_asset_transfer:
 	load 1
 	load 2
 	frame_dig -1
-	store 0
+	store 2
 	frame_dig -2
 	store 1
 	frame_dig -3
-	store 2
+	store 0
 	load 0
 	pushint 100
 	pushbytes 0x056178666572
@@ -317,11 +317,11 @@ transaction.init_header:
 	load 1
 	load 2
 	frame_dig -1
-	store 0
+	store 2
 	frame_dig -2
 	store 1
 	frame_dig -3
-	store 2
+	store 0
 	itxn_begin
 	load 1
 	itxn_field Fee
@@ -342,11 +342,11 @@ transaction.init_pay:
 	load 1
 	load 2
 	frame_dig -1
-	store 0
+	store 2
 	frame_dig -2
 	store 1
 	frame_dig -3
-	store 2
+	store 0
 	load 0
 	pushint 100
 	pushbytes 0x03706179
@@ -382,9 +382,9 @@ asset.deposit:
 	load 2
 	load 3
 	frame_dig -1
-	store 0
-	frame_dig -2
 	store 1
+	frame_dig -2
+	store 0
 	load 1
 	dup
 	extract 0 8
@@ -422,9 +422,9 @@ asset.withdraw:
 	load 3
 	load 4
 	frame_dig -1
-	store 0
-	frame_dig -2
 	store 1
+	frame_dig -2
+	store 0
 	callsub utils.retrieve_asset_id
 	store 2
 	load 0
@@ -473,11 +473,11 @@ auction_with_item.bid:
 	load 3
 	load 4
 	frame_dig -1
-	store 0
+	store 2
 	frame_dig -2
 	store 1
 	frame_dig -3
-	store 2
+	store 0
 	load 1
 	pushbytes 0x0100
 	swap
@@ -607,11 +607,11 @@ auction_with_item.start_auction:
 	load 3
 	load 4
 	frame_dig -1
-	store 0
+	store 2
 	frame_dig -2
 	store 1
 	frame_dig -3
-	store 2
+	store 0
 	load 0
 	store 3
 	load 2
@@ -659,9 +659,9 @@ auction_with_item.retrieve_prize:
 	load 5
 	load 6
 	frame_dig -1
-	store 0
-	frame_dig -2
 	store 1
+	frame_dig -2
+	store 0
 	load 0
 	store 2
 	load 1
