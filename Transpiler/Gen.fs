@@ -44,6 +44,7 @@ type M.Module with
         | M.ty.U32 -> 4us
         | M.ty.U64 -> 8us
         | M.ty.Address -> 32us
+        | M.ty.Cons (s, _)
         | M.ty.Typename s ->
             try
                 let S = P.struct_by_name s
@@ -51,7 +52,7 @@ type M.Module with
             with _ -> Report.warn "typename %s is a generic type. Generics are not supported. Defaulting length to %d bytes" s Config.generic_field_default_length
                       uint16 Config.generic_field_default_length
 
-        | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Type %A should not appear in structs" ty
+        | M.ty.Ref _ | M.ty.MutRef _ | M.ty.Tuple _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Type %A should not appear in structs" ty
 
 type M.Fun with
     member F.max_local_index =
@@ -85,18 +86,17 @@ let instr_label mid fid i = lazy (sublabel_name mid fid (string i))
 // transpiler functions
 //
 
+exception private UnsupportedNative
+
 let private ImportCache = System.Collections.Generic.Dictionary<M.id, _>()
 
 let private TouchedFunCache = System.Collections.Generic.HashSet<M.id * M.id>()
 
-let private emit_call mid id =
+let emit_call mid id =
     TouchedFunCache.Add (mid, id) |> ignore
     [ T.Callsub (solid_label mid id) ]
 
-
-exception private UnsupportedNative
-
-let private emit_call_native mid fid =
+let emit_call_native mid fid =
 
     let (|Regex|_|) pattern input =
         let m = Regex.Match (input, pattern)
@@ -148,7 +148,7 @@ let private emit_call_native mid fid =
 
 
 
-let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
+let emit_opcode ctx (P : M.Module) (op : M.opcode) =
         
     let branch cons l = cons (touch_label ctx.labels.[int l])
 
@@ -207,14 +207,14 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
 
-        | M.Call (NonNative (mid, id), _, _) -> yield! emit_call mid id
-        | M.Call (Native (mid, id), _, _) -> yield! emit_call_native mid id
+        | M.Call (NonNative (mid, id), ty_args) -> yield! emit_call mid id
+        | M.Call (Native (mid, id), ty_args) -> yield! emit_call_native mid id
 
         | M.ReadRef -> yield T.Callsub (lazy "ReadRef")        
         | M.WriteRef -> yield T.Callsub (lazy "WriteRef")
         | M.FreezeRef -> ()
 
-        | M.LdConst ((M.ty.Address | M.ty.Vector M.ty.U8), nums) ->
+        | M.LdConst ((M.ty.Address | M.ty.Cons ("vector", [M.ty.U8])), nums) ->
             yield T.PushBytes (Array.ofList <| List.map byte nums)
 
         | M.LdConst (ty, nums) ->
@@ -275,7 +275,7 @@ let private emit_opcode ctx (P : M.Module) (op : M.opcode) =
             yield T.AppLocalDel
     ]
 
-let private emit_instrs ctx P (instrs : M.opcode array) =
+let emit_instrs ctx P (instrs : M.opcode array) =
     [
         for i = 0 to instrs.Length - 1 do
             let mop = instrs.[i]
@@ -288,9 +288,9 @@ let private emit_instrs ctx P (instrs : M.opcode array) =
                     yield top
     ]
 
-let private emit_fun (P : M.Module) (F : M.Fun) =
+let emit_fun (P : M.Module) (F : M.Fun) =
     F.name, [
-            let N = F.args.Length
+            let N = F.paramss.Length
             let ctx = {
                     exit_label = exit_label P.name F.name
                     labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.name i |]
@@ -370,9 +370,9 @@ let emit_preamble (P : M.Module) =
                 for l, F in List.zip labels funs do
                     yield T.Label l
                     // deserialize application arguments
-                    let args_no_signer = List.filter (function _, Signer -> false | _ -> true) F.args
-                    for i = 0 to F.args.Length - 1 do
-                        match F.args.[i] with
+                    let args_no_signer = List.filter (function _, Signer -> false | _ -> true) F.paramss
+                    for i = 0 to F.paramss.Length - 1 do
+                        match F.paramss.[i] with
                         | _, Signer -> yield T.Txn "Sender"
                         | x, ty -> 
                             yield T.Load 0u

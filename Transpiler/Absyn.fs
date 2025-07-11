@@ -19,7 +19,7 @@ module Move =
         | U32
         | U64
         | Address
-        | Vector of ty
+        | Cons of id * ty list
         | Typename of id
         | Ref of ty
         | MutRef of ty 
@@ -28,12 +28,17 @@ module Move =
         static member of_const_ty (cons : id, arg : id option) =
             match cons.ToLower(), Option.map (fun (s : string) -> s.ToLower()) arg with
             | "address", None -> ty.Address
-            | "vector", Some "u8" -> ty.Vector ty.U8
+            | "vector", Some "u8" -> ty.Cons ("vector", [ty.U8])
             | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Move const type '%s%s' not recognized" cons (Option.map (sprintf "(%s)") arg |> Option.defaultValue "")
 
+        member self.raw =
+            match self with
+            | Cons (id, _)
+            | Typename id -> id
+            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Raw type of non-struct '%A'" self
 
     type field = id * ty
-    type arg = field
+    type param = field
 
     [<RequireQualifiedAccess>]
     type qual = Public | Entry | Native
@@ -68,7 +73,7 @@ module Move =
         | Ge
         | Pop
         | Abort
-        | Call of qid * ty list * ty option
+        | Call of qid * ty list 
         | ReadRef
         | WriteRef
         | FreezeRef
@@ -93,11 +98,11 @@ module Move =
         | MoveTo of id
         | MoveFrom of id
 
-    //type instr = label * opcode
+    type ty_param = id * capab list
 
-    type Fun = { quals : qual list; name : id; args : arg list; ret : ty option; body : opcode array }
+    type Fun = { quals : qual list; name : id; ty_params : ty_param list; paramss : param list; ret : ty option; body : opcode array }
 
-    type Struct = { id : id; capabs : capab list; fields : field list }
+    type Struct = { id : id; ty_params : ty_param list; capabs : capab list; fields : field list }
 
     type Module = { fullname : qid; imports: qid list; structs : Struct list; funs : Fun list }
     with

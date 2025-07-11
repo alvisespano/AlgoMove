@@ -14,6 +14,8 @@ type token =
   | USE
   | NATIVE
   | U8
+  | U16
+  | U32
   | U64
   | U128
   | BOOL
@@ -21,6 +23,9 @@ type token =
   | AMP
   | MUT
   | STAR
+  | ABRA
+  | AKET
+  | PLUS
   | BRA
   | KET
   | SQBRA
@@ -100,6 +105,8 @@ type tokenId =
     | TOKEN_USE
     | TOKEN_NATIVE
     | TOKEN_U8
+    | TOKEN_U16
+    | TOKEN_U32
     | TOKEN_U64
     | TOKEN_U128
     | TOKEN_BOOL
@@ -107,6 +114,9 @@ type tokenId =
     | TOKEN_AMP
     | TOKEN_MUT
     | TOKEN_STAR
+    | TOKEN_ABRA
+    | TOKEN_AKET
+    | TOKEN_PLUS
     | TOKEN_BRA
     | TOKEN_KET
     | TOKEN_SQBRA
@@ -187,15 +197,19 @@ type nonTerminalId =
     | NONTERM_fields
     | NONTERM_funs
     | NONTERM_funn
+    | NONTERM_ty_params
+    | NONTERM_ty_param
+    | NONTERM_ty_param_capabs
     | NONTERM_optbody
-    | NONTERM_arg
-    | NONTERM_args
+    | NONTERM_param
+    | NONTERM_params
     | NONTERM_body
     | NONTERM_bodyline
     | NONTERM_quals
     | NONTERM_qual
     | NONTERM_return_ty
     | NONTERM_ty
+    | NONTERM_ty_args
     | NONTERM_ty_tuple
     | NONTERM_capabs
     | NONTERM_capab
@@ -208,7 +222,7 @@ type nonTerminalId =
     | NONTERM_const
     | NONTERM_const_ty
     | NONTERM_nums
-    | NONTERM_opcode_typename
+    | NONTERM_opcode_type
     | NONTERM_opcodes_index
     | NONTERM_opcodes_label
     | NONTERM_opcodes_no_imm

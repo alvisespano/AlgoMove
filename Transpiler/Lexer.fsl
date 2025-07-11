@@ -29,10 +29,6 @@ and linecomment = parse
     | newline           { newline lexbuf; tokenize lexbuf }
     | _                 { linecomment lexbuf }
 
-and skip_generics = parse
-    | '>'				{ tokenize lexbuf }
-    | _                 { skip_generics lexbuf }
-
 and tokenize = parse
 	| eof				{ EOF }
 	| whitespace		{ tokenize lexbuf }
@@ -53,6 +49,7 @@ and tokenize = parse
 	| "entry"		{ ENTRY }	
 	| "native"		{ NATIVE }
 	| "use"			{ USE }
+	| "phantom"		{ tokenize lexbuf }
 
 	// types
 	| "u8"			{ U8 }
@@ -129,7 +126,9 @@ and tokenize = parse
 	| ','			{ COMMA }
 	| '.'			{ DOT }
 	| ';'			{ SEMICOLON }
-	| '<'			{ skip_generics lexbuf }
+	| '<'			{ ABRA }
+	| '>'			{ AKET }
+	| '+'			{ PLUS }
 
 	// literals
 	| nat   	    		{ NUM (lexeme lexbuf) }

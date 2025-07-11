@@ -16,7 +16,7 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
 %token <System.String> ID
 
 %token MODULE STRUCT HAS COPY DROP KEY STORE PUBLIC ENTRY USE NATIVE
-       U8 U64 U128 BOOL ADDRESS AMP MUT STAR
+       U8 U16 U32 U64 U128 BOOL ADDRESS AMP MUT STAR ABRA AKET PLUS
        BRA KET SQBRA SQKET CURBRA CURKET
        COLON DOT COMMA COLON2 SEMICOLON
        MOVLOC CPYLOC STLOC CALL 
@@ -64,35 +64,57 @@ structs_:
   
 structt:
     STRUCT ID has_capabs CURBRA
-    fields CURKET               { { id = $2; capabs = $3; fields = $5 } }
+    fields CURKET               { { id = $2; ty_params = []; capabs = $3; fields = $5 } }
+  | STRUCT ID ABRA ty_params AKET
+    has_capabs CURBRA
+    fields CURKET               { { id = $2; ty_params = $4; capabs = $6; fields = $8 } }
+
 
 has_capabs: 
     HAS capabs                  { $2 }
   |                             { [] }
 
 fields:
-    args                        { $1 }
+    params                      { $1 }
 
 funs:
     funn                        { [$1] }
   | funn funs                   { $1 :: $2 }
  
 funn:
-    quals ID BRA args KET
+    quals ID 
+    BRA params KET
     return_ty
-    optbody                     { { quals = $1; name = $2; args = $4; ret = $6; body = List.toArray $7 } }   
+    optbody                     { { quals = $1; name = $2; ty_params = []; paramss = $4; ret = $6; body = List.toArray $7 } }   
+  | quals ID 
+    ABRA ty_params AKET
+    BRA params KET
+    return_ty
+    optbody                     { { quals = $1; name = $2; ty_params = $4; paramss = $7; ret = $9; body = List.toArray $10 } }   
+
+ty_params:
+    ty_param                    { [$1] }                   
+  | ty_param COMMA ty_params    { $1 :: $3 }
+
+ty_param:
+    ID                          { $1, [] }
+  | ID COLON ty_param_capabs    { $1, $3 }
+
+ty_param_capabs:
+    capab                       { [$1] }
+  | capab PLUS ty_param_capabs  { $1 :: $3 }
 
 optbody:
     CURBRA body CURKET          { $2 }
   |                             { [] }
 
-arg:
+param:
     ID COLON ty                 { $1, $3 }
 
-args:
-    arg                         { [$1] }
+params:
+    param                       { [$1] }
   |                             { [] }
-  | arg COMMA args              { $1 :: $3 }
+  | param COMMA params          { $1 :: $3 }
 
 body:
     bodyline                    { $1 }
@@ -119,12 +141,19 @@ return_ty:
 
 ty:
     U8                          { ty.U8 }
+  | U16                         { ty.U16 }
+  | U32                         { ty.U32 }
   | U64                         { ty.U64 }
   | BOOL                        { ty.Bool }
   | ADDRESS                     { ty.Address }
   | ID                          { ty.Typename $1 }
   | AMP ty                      { ty.Ref $2 }
   | AMP MUT ty                  { ty.MutRef $3 }
+  | ID ABRA ty_args AKET        { ty.Cons ($1, $3) }
+
+ty_args:
+    ty                          { [$1] }
+  | ty COMMA ty_args            { $1 :: $3 }
 
 ty_tuple:
   | ty STAR ty                  { [$1; $3] }    /* disassambled tuple types have STAR not COMMA */
@@ -167,11 +196,12 @@ opcode:
     opcodes_no_imm                                          { $1 }
   | opcodes_index SQBRA index SQKET BRA ID COLON ty KET     { $1 $3 }
   | opcodes_label BRA label KET                             { $1 $3 }
-  | opcode_typename SQBRA index SQKET BRA ID KET            { $1 $6 }
+  | opcode_type SQBRA index SQKET BRA ty KET                { $1 $6.raw }
 
   | BORROWFIELD SQBRA index SQKET BRA ID DOT ID COLON ty KET   { BorrowField ($6, $8, $10) }
 
-  | CALL qid BRA argtys KET return_ty                       { Call ($2, $4, $6) }
+  | CALL qid BRA argtys KET return_ty                       { Call ($2, []) }
+  | CALL qid ABRA ty_args AKET BRA argtys KET return_ty     { Call ($2, $4) }
   | LDU8 BRA NUM KET                                        { LdU8 (byte $3) }
   | LDU16 BRA NUM KET                                       { LdU16 (uint16 $3) }
   | LDU32 BRA NUM KET                                       { LdU32 (uint32 $3) }
@@ -189,7 +219,7 @@ nums:
     NUM                         { [int $1] }
   | NUM COMMA nums              { int $1 :: $3 }
 
-opcode_typename:
+opcode_type:
   | PACK                        { Pack }
   | UNPACK                      { Unpack }
   | BORROWGLOBAL                { BorrowGlobal }
@@ -241,8 +271,8 @@ opcodes_no_imm:
   | LDFALSE                                       { LdBool false }
   | RET                                           { Ret }
 
-  | CASTU8                                       { CastU8 }
-  | CASTU16                                      { CastU16 }
-  | CASTU32                                      { CastU32 }
-  | CASTU64                                      { CastU64 }
+  | CASTU8                                        { CastU8 }
+  | CASTU16                                       { CastU16 }
+  | CASTU32                                       { CastU32 }
+  | CASTU64                                       { CastU64 }
   

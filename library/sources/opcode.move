@@ -1,7 +1,5 @@
 module algomove::opcode {
 
-	//use std::string::{vector<u8>};
-
 	// transactions
 	
 	native public fun txn_Sender(): address;
