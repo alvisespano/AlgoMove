@@ -64,10 +64,10 @@ structs_:
   
 structt:
     STRUCT ID has_capabs CURBRA
-    fields CURKET               { { id = $2; ty_params = []; capabs = $3; fields = $5 } }
+    fields CURKET               { { id = $2; ty_params = []; fields = $5 } }
   | STRUCT ID ABRA ty_params AKET
     has_capabs CURBRA
-    fields CURKET               { { id = $2; ty_params = $4; capabs = $6; fields = $8 } }
+    fields CURKET               { { id = $2; ty_params = $4; fields = $8 } }
 
 
 has_capabs: 
@@ -164,10 +164,10 @@ capabs:
   | capab COMMA capabs          { $1 :: $3 }
 
 capab:
-  | COPY                        { Copy }
-  | DROP                        { Drop }
-  | KEY                         { Key }
-  | STORE                       { Store }
+  | COPY                        {  }
+  | DROP                        {  }
+  | KEY                         {  }
+  | STORE                       {  }
  
 qid:
     ID                          { None, $1 }

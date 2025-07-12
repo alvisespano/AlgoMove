@@ -12,14 +12,26 @@ module T = Teal
 //
 
 type M.ty with
-    member ty.is_integral =
-        match ty with
+    member self.is_integral =
+        match self with
         | M.ty.Bool
         | M.ty.U8 
         | M.ty.U16
         | M.ty.U32 
         | M.ty.U64 -> true
         | _ -> false
+
+    member self.apply_subst θ = 
+        match self with
+        | M.ty.Cons (s, []) when Map.containsKey s θ -> Map.find s θ
+        | τ -> τ
+
+
+type M.Struct with
+    member self.instantiate tys =
+        let θ = Map.ofList <| List.zip self.ty_params tys
+        { self with fields = [ for x, τ in self.fields do yield x, τ.apply_subst θ ] }
+
 
 type M.Module with
     member P.struct_by_name id = P.structs.[int <| P.index_of_struct id]
@@ -31,13 +43,13 @@ type M.Module with
     member P.offset_of_field fields fid : uint16 =
         let rec R = function
             | [] -> 0us
-            | (id, ty) :: fields -> 
+            | (id, τ) :: fields -> 
                 if id = fid then 0us
                 else P.len_of_ty ty + R fields 
         R fields |> uint16
 
-    member P.len_of_ty ty : uint16 =
-        match ty with
+    member P.len_of_ty τ : uint16 =
+        match τ with
         | M.ty.Bool -> 1us
         | M.ty.U8 -> 1us
         | M.ty.U16 -> 2us
@@ -45,13 +57,14 @@ type M.Module with
         | M.ty.U64 -> 8us
         | M.ty.Address -> 32us
         | M.ty.Cons (s, _) ->
+        | M.ty.Cons (s, τs) ->
             try
-                let S = P.struct_by_name s
-                List.sumBy (fun (_, ty) -> P.len_of_ty ty) S.fields |> uint16
+                let S = (P.struct_by_name s).instantiate τs
+                List.sumBy (fun (_, τ) -> P.len_of_ty τ) S.fields |> uint16
             with _ -> Report.warn "typename %s is a generic type. Generics are not supported. Defaulting length to %d bytes" s Config.generic_field_default_length
                       uint16 Config.generic_field_default_length
 
-        | M.ty.Ref _ | M.ty.MutRef _ | M.ty.Tuple _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Type %A should not appear in structs" ty
+        | M.ty.Ref _ | M.ty.MutRef _ | M.ty.Tuple _ -> unexpected_case __SOURCE_FILE__ __LINE__ "type %O should not appear in structs" τ
 
 type M.Fun with
     member F.max_local_index =
@@ -65,7 +78,7 @@ type M.Fun with
                   | l    -> Some (uint (Array.max l))
 
 
-// context and labels
+// context and misc types
 //
             
 type context = {
@@ -81,6 +94,11 @@ let solid_label mid fid = lazy (qid_label_name mid fid) |> touch_label
 let exit_label mid fid = lazy (sublabel_name mid fid Config.teal_exit_sublabel)
 let instr_label mid fid i = lazy (sublabel_name mid fid (string i)) 
 
+type type_tag = { len: uint16; name: string }
+with
+    static member of_ty (P : M.Module) τ = { len = P.len_of_ty τ; name = sprintf "%O" τ }
+    member self.as_bytes = sprintf "%04x%O" self.len self.name |> Seq.map byte |> Array.ofSeq
+
 
 
 // transpiler functions
@@ -91,22 +109,22 @@ exception UnsupportedNative
 let private ImportCache = System.Collections.Generic.Dictionary<M.id, _>()
 
 let private TouchedFunCache = System.Collections.Generic.HashSet<M.id * M.id>()
-
-let emit_call ty_params mid id (ty_args : M.ty list) =
-    TouchedFunCache.Add (mid, id) |> ignore
+    
+let emit_call P ty_params mid fid (ty_args : M.ty list) =
+    TouchedFunCache.Add (mid, fid) |> ignore
     [ 
         let N = List.length ty_params
-        for ty in ty_args do
-            match ty with
+        for τ in ty_args do
+            match τ with
             | M.ty.Cons (id, []) when List.contains id ty_params -> 
                 let i = List.findIndex ((=) id) ty_params
                 yield T.FrameDig (-(N - 1 - i) - 1)
 
-            | _ -> yield T.PushBytes (sprintf "%O" ty |> Seq.map byte |> Array.ofSeq)
-        yield T.Callsub (solid_label mid id) 
+            | _ -> yield T.PushBytes (type_tag.of_ty P τ).as_bytes
+        yield T.Callsub (solid_label mid fid) 
     ]
 
-let emit_call_native ty_params mid fid ty_args =
+let emit_call_native ty_params mid fid (ty_args : M.ty list) =
 
     let (|Regex|_|) pattern input =
         let m = Regex.Match (input, pattern)
@@ -119,7 +137,10 @@ let emit_call_native ty_params mid fid ty_args =
                 match fid with 
                 | "address_of_signer"
                 | "bytes_of_address" -> ()
-                | "name_of" -> yield T.FrameDig -1  // has 1 type parameter only, just return the type witness that is the typename already
+                | "name_of" ->
+                    yield T.FrameDig -1
+//                    yield T.
+
                 | _ -> raise UnsupportedNative
 
             | "opcode" ->
@@ -217,8 +238,11 @@ let emit_opcode ctx (P : M.Module) (op : M.opcode) =
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l
 
-        | M.Call (NonNative (mid, id), ty_args) -> yield! emit_call ctx.ty_params mid id ty_args
-        | M.Call (Native (mid, id), ty_args) -> yield! emit_call_native ctx.ty_params mid id ty_args
+        | M.Call (NonNative (mid, fid), ty_args) -> 
+            yield! emit_call P ctx.ty_params mid fid ty_args
+
+        | M.Call (Native (mid, fid), ty_args) -> 
+            yield! emit_call_native ctx.ty_params mid fid ty_args
 
         | M.ReadRef -> yield T.Callsub (lazy "ReadRef")        
         | M.WriteRef -> yield T.Callsub (lazy "WriteRef")
@@ -253,7 +277,7 @@ let emit_opcode ctx (P : M.Module) (op : M.opcode) =
             yield T.Pop
 
         | M.BorrowField (sid, fid, fty) ->
-            let d = P.offset_of_struct_field sid fid ||| (if fty.is_integral then 0us else 0x8000us)   // set bit 15 is deserialization is needed
+            let d = P.offset_of_struct_field sid fid ||| (if fty.is_integral then 0us else 0x8000us)   // set bit 15 if deserialization is needed
             let l = P.len_of_ty fty
             let uint16_to_bytes (n : uint16) = [| byte (n >>> 8); byte (n &&& 0x00ffus) |]
             yield T.PushBytes [| yield! uint16_to_bytes d; yield! uint16_to_bytes l |]
@@ -393,7 +417,7 @@ let emit_preamble (P : M.Module) =
                             yield T.Extract (d, l)
                             if ty.is_integral then yield T.Btoi
                     // call the entry function
-                    yield! emit_call [] P.name F.name []
+                    yield! emit_call P [] P.name F.name []
                     yield T.Return
               ]
 

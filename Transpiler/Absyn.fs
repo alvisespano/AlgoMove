@@ -55,9 +55,6 @@ module Move =
     [<RequireQualifiedAccess>]
     type qual = Public | Entry | Native
 
-    // TODO wipe these capabs as they are not needed in our translation
-    type capab = Key | Store | Copy | Drop
-
     type index = uint
 
     type opcode = 
@@ -115,7 +112,7 @@ module Move =
 
     type Fun = { quals : qual list; name : id; ty_params : ty_param list; paramss : param list; ret : ty option; body : opcode array }
 
-    type Struct = { id : id; ty_params : ty_param list; capabs : capab list; fields : field list }
+    type Struct = { id : id; ty_params : ty_param list; fields : field list }
 
     type Module = { fullname : qid; imports: qid list; structs : Struct list; funs : Fun list }
     with

@@ -913,7 +913,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 67 "Parser.fsy"
-                                                       { id = _2; ty_params = []; capabs = _3; fields = _5 } 
+                                                       { id = _2; ty_params = []; fields = _5 } 
                    )
 # 67 "Parser.fsy"
                  : 'gentype_structt));
@@ -927,7 +927,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 70 "Parser.fsy"
-                                                       { id = _2; ty_params = _4; capabs = _6; fields = _8 } 
+                                                       { id = _2; ty_params = _4; fields = _8 } 
                    )
 # 70 "Parser.fsy"
                  : 'gentype_structt));
@@ -1475,7 +1475,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 167 "Parser.fsy"
-                                                       Copy 
+                                                        
                    )
 # 167 "Parser.fsy"
                  : 'gentype_capab));
@@ -1485,7 +1485,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 168 "Parser.fsy"
-                                                       Drop 
+                                                        
                    )
 # 168 "Parser.fsy"
                  : 'gentype_capab));
@@ -1495,7 +1495,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 169 "Parser.fsy"
-                                                       Key 
+                                                        
                    )
 # 169 "Parser.fsy"
                  : 'gentype_capab));
@@ -1505,7 +1505,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 170 "Parser.fsy"
-                                                       Store 
+                                                        
                    )
 # 170 "Parser.fsy"
                  : 'gentype_capab));
