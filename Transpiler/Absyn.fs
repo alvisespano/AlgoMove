@@ -133,6 +133,7 @@ module Teal =
         | Cover of uint
         | Uncover of uint
         | FrameDig of int 
+        | FrameBury of int 
 
         // Arithmetic
         | Add
@@ -205,9 +206,11 @@ module Teal =
         | Itob
         | Btoi
         | Len
-        | Extract of uint16 * uint16
+        | Extract of uint * uint
         | Extract3
+        | Extract_uint16
         | Getbit
+        | Setbit
         | Concat
         | Err
         | Proto of uint * uint
@@ -222,7 +225,7 @@ module Teal =
         //| UnsupportedOpcode mop -> sprintf "UNSUPPORTED_OPCODE[%A]" mop
         | UnsupportedNative s -> sprintf "UNSUPPORTED_NATIVE[%s]" s
         | PushInt n -> sprintf "pushint %d" n
-        | PushBytes b -> sprintf "pushbytes 0x%s" (System.BitConverter.ToString(b).Replace("-", ""))
+        | PushBytes b -> sprintf "pushbytes 0x%s\t// %s" (System.BitConverter.ToString(b).Replace("-", "")) (Text.Encoding.UTF8.GetString(b))
         | Pop -> "pop"
         | Dup -> "dup"
         | Dup2 -> "dup2"
@@ -231,6 +234,7 @@ module Teal =
         | Cover n -> sprintf "cover %d" n
         | Uncover n -> sprintf "uncover %d" n
         | FrameDig n -> sprintf "frame_dig %d" n
+        | FrameBury n -> sprintf "frame_bury %d" n
         | Add -> "+"
         | Sub -> "-"
         | Mul -> "*"
@@ -285,9 +289,11 @@ module Teal =
         | Itob -> "itob"
         | Btoi -> "btoi"
         | Getbit -> "getbit"
+        | Setbit -> "setbit"
         | Len -> "len"
         | Extract (s, l)-> sprintf "extract %d %d" s l
         | Extract3 -> "extract3"
+        | Extract_uint16 -> "extract_uint16"
         | Concat -> "concat"
         | Err -> "err"
         | Proto (a, b) -> sprintf "proto %d %d" a b

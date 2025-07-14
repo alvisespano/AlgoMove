@@ -14,7 +14,7 @@ fun freezeref_callee(n: &u64): u64 {
 fun freezeref_caller() {
 	let n = 1;
 	let r = &mut n;
-	let m = freezeref_callee(r);	// qui subsume &mut u64 a &u64
+	let _m = freezeref_callee(r);	// qui subsume &mut u64 a &u64
 }
 
 fun sel(acc: address, n: u64) acquires S {

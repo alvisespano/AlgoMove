@@ -11,29 +11,35 @@ module T = Teal
 // type augmentations
 //
 
+let (|TyIntegral|_|) = function
+    | M.ty.Bool
+    | M.ty.U8 
+    | M.ty.U16
+    | M.ty.U32 
+    | M.ty.U64 -> Some ()
+    | _ -> None
+
 type M.ty with
     member self.is_integral =
         match self with
-        | M.ty.Bool
-        | M.ty.U8 
-        | M.ty.U16
-        | M.ty.U32 
-        | M.ty.U64 -> true
-        | M.ty.Cons _ 
-        | M.ty.Ref _
-        | M.ty.MutRef _ 
-        | M.ty.Tuple _
-        | M.ty.Address -> false
+        | TyIntegral _ -> true
+        | _ -> false
 
-    //member self.apply_subst θ = 
-    //    match self with
-    //    | M.ty.Cons (s, []) when Map.containsKey s θ -> Map.find s θ
-    //    | τ -> τ
+    member self.raw =
+            match self with
+            | M.ty.Cons (id, _) -> id
+            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "raw type of non-struct '%A'" self
 
-//type M.Struct with
-//    member self.instantiate τs =
-//        let θ = Map.ofList <| List.zip self.ty_params τs
-//        { self with fields = [ for x, τ in self.fields do yield x, τ.apply_subst θ ] }
+    member self.apply_subst θ = 
+        match self with
+        | M.ty.Cons (s, []) when Map.containsKey s θ -> Map.find s θ
+        | τ -> τ
+
+
+type M.Struct with
+    member self.instantiate τs =
+        let θ = Map.ofList <| List.zip self.ty_params τs
+        { self with fields = [ for x, τ in self.fields do yield x, τ.apply_subst θ ] }
 
 
 type M.Module with
@@ -42,41 +48,31 @@ type M.Module with
 
     member P.index_of_struct id = List.findIndex (fun (s : M.Struct) -> s.id = id) P.structs |> byte
 
-    //member P.instantiate_struct τs τ = 
-    //    match τ with
-    //    | M.ty.Cons (s, _ :: _) -> (P.struct_by_name s).instantiate τs
-    //    | τ -> unexpected_case __SOURCE_FILE__ __LINE__ "type %O must be a struct" τ 
-
-    member P.struct_of_ty τ =
+    member P.instantiate_struct τ =
             match τ with
-            | M.ty.Cons (s, _) -> P.struct_by_name s
+            | M.ty.Cons (s, τs) -> (P.struct_by_name s).instantiate τs
             | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "type %O must be a struct" τ
 
     member P.offset_of_struct_field sid fid = P.offset_of_field (P.struct_by_name sid).fields fid
 
-    member P.offset_of_field fields fid : uint16 =
+    member P.offset_of_field fields fid : uint =
         let rec R = function
-            | [] -> 0us
+            | [] -> 0u
             | (id, τ) :: fields -> 
-                if id = fid then 0us
+                if id = fid then 0u
                 else P.len_of_ty τ + R fields
-        R fields |> uint16
+        R fields
 
-    member P.len_of_ty τ : uint16 =
+    member P.len_of_ty τ : uint =
         match τ with
-        | M.ty.Bool -> 1us
-        | M.ty.U8 -> 1us
-        | M.ty.U16 -> 2us
-        | M.ty.U32 -> 4us
-        | M.ty.U64 -> 8us
-        | M.ty.Address -> 32us
-        | M.ty.Cons (s, τs) ->
+        | TyIntegral _ -> 8u
+        | M.ty.Cons (s, _) ->
             try
                 let S = P.struct_by_name s
-                List.sumBy (fun (_, τ) -> P.len_of_ty τ) S.fields |> uint16
+                List.sumBy (fun (_, τ) -> P.len_of_ty τ) S.fields |> uint
             with :? System.ArgumentException -> unexpected "typename %s is a generic type" __SOURCE_FILE__ __LINE__ s
 
-        | M.ty.Ref _ | M.ty.MutRef _ | M.ty.Tuple _ -> unexpected_case __SOURCE_FILE__ __LINE__ "type %O should not appear in structs" τ
+        | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "type %O should not appear in structs" τ
 
 type M.Fun with
     member F.max_local_index =
@@ -94,9 +90,10 @@ type M.Fun with
 //
             
 type context = {
-    exit_label : T.label
     labels : T.label array
     ty_params : M.ty_param list
+    P : M.Module
+    F : M.Fun
 }
 with
     member self.is_type_parameter s = List.contains s self.ty_params
@@ -126,84 +123,15 @@ exception UnsupportedNative
 let private ImportCache = System.Collections.Generic.Dictionary<M.id, _>()
 
 let private TouchedFunCache = System.Collections.Generic.HashSet<M.id * M.id>()
-    
-let emit_call P ty_params mid fid (ty_args : M.ty list) =
-    TouchedFunCache.Add (mid, fid) |> ignore
-    [ 
-        for τ in ty_args do
-            match τ with
-            // TODO this case is used multiple times: refactorize it
-            | M.ty.Cons (s, []) when List.contains s ty_params -> 
-                let i = List.findIndex ((=) s) ty_params
-                yield T.FrameDig (-(List.length ty_params - 1 - i) - 1)
-
-            | _ -> yield T.PushBytes (type_tag.of_ty P τ).as_bytes
-        yield T.Callsub (solid_label mid fid) 
-    ]
-
-let emit_call_native ty_params mid fid (ty_args : M.ty list) =
-
-    let (|Regex|_|) pattern input =
-        let m = Regex.Match (input, pattern)
-        if m.Success then Some (List.tail [ for g in m.Groups -> g.Value ])
-        else None
-    [
-        try
-            match mid with
-            | "utils" ->
-                match fid with 
-                | "address_of_signer"
-                | "bytes_of_address" -> ()
-                | "name_of" ->
-                    match ty_args.[0] with
-                    | M.ty.Cons (s, []) when List.contains s ty_params -> 
-                        let i = List.findIndex ((=) s) ty_params
-                        yield T.FrameDig (-(List.length ty_params - 1 - i) - 1)
-                        yield T.Extract (1us, 0us)
-
-                    | τ ->
-                        yield T.PushBytes (τ.ToString () |> Seq.map byte |> Seq.toArray)
-                        
-
-                | _ -> raise UnsupportedNative
-
-            | "opcode" ->
-                match fid with
-                | "itxn_begin" -> yield T.ITxnBegin
-                | "itxn_submit" -> yield T.ITxnSubmit
-
-                | Regex @"itxn_field_(\w+)" [field] -> yield T.ITxnField field
-                | Regex @"global_(\w+)" [field] -> yield T.Global field
-                | Regex @"txn_(\w+)" [field] -> yield T.Txn field
-                | Regex @"txnas_(\w+)" [field] -> yield T.Txnas field
-                | Regex @"asset_holding_get_(\w+)" [field] -> yield T.AssetHoldingGet field
-                | Regex @"asset_params_get_(\w+)" [field] -> yield T.AssetParamsGet field
-
-                | "balance"       -> yield T.Balance
-                | "min_balance"   -> yield T.MinBalance
-                | "app_local_get" -> yield T.AppLocalGet
-                | "app_global_get"-> yield T.AppGlobalGet
-                | "app_local_put" -> yield T.AppLocalPut
-                | "app_global_put"-> yield T.AppGlobalPut
-                | "assert"        -> yield T.Assert
-                | "itob"          -> yield T.Itob
-                | "btoi"          -> yield T.Btoi
-                | "len"           -> yield T.Len
-                | "concat"        -> yield T.Concat
-                | "err"           -> yield T.Err
-
-                | _ -> raise UnsupportedNative
-            
-            | _ -> raise UnsupportedNative
-
-        with UnsupportedNative ->
-            Report.error "native function %s.%s is not yet supported" mid fid
-            yield T.UnsupportedNative (sprintf "%s::%s" mid fid)
-    ]
 
 
 
-let emit_opcode ctx (P : M.Module) (op : M.opcode) =
+
+
+
+
+
+let emit_opcode (ctx : context) (op : M.opcode) =
         
     let branch cons l = cons (touch_label ctx.labels.[int l])
 
@@ -211,11 +139,74 @@ let emit_opcode ctx (P : M.Module) (op : M.opcode) =
         let m = 
             match qid with
             | Some mid -> ImportCache.[mid] |> fst
-            | None     -> P
+            | None     -> ctx.P
         if List.exists (fun (F : M.Fun) -> F.name = fid && List.contains M.qual.Native F.quals) m.funs
         then Native (m.name, fid)
         else NonNative (m.name, fid)
-                
+            
+    let (|TyGeneric|_|) = function
+        | M.ty.Cons (s, []) when ctx.is_type_parameter s -> 
+            let i = List.findIndex ((=) s) ctx.ty_params
+            Some [ T.FrameDig (-(List.length ctx.ty_params - 1 - i) - 1) ]
+        | _ -> None
+
+    let emit_call_native mid fid (ty_args : M.ty list) =
+
+        let (|Regex|_|) pattern input =
+            let m = Regex.Match (input, pattern)
+            if m.Success then Some (List.tail [ for g in m.Groups -> g.Value ])
+            else None
+        [
+            try
+                match mid with
+                | "utils" ->
+                    match fid with 
+                    | "address_of_signer"
+                    | "bytes_of_address" -> ()
+                    | "name_of" ->
+                        match ty_args.[0] with
+                        | TyGeneric instrs -> 
+                            yield! instrs
+                            yield T.Extract (1u, 0u)
+
+                        | τ -> yield T.PushBytes (τ.ToString () |> Seq.map byte |> Seq.toArray)
+                        
+                    | _ -> raise UnsupportedNative
+
+                | "opcode" ->
+                    match fid with
+                    | "itxn_begin" -> yield T.ITxnBegin
+                    | "itxn_submit" -> yield T.ITxnSubmit
+
+                    | Regex @"itxn_field_(\w+)" [field] -> yield T.ITxnField field
+                    | Regex @"global_(\w+)" [field] -> yield T.Global field
+                    | Regex @"txn_(\w+)" [field] -> yield T.Txn field
+                    | Regex @"txnas_(\w+)" [field] -> yield T.Txnas field
+                    | Regex @"asset_holding_get_(\w+)" [field] -> yield T.AssetHoldingGet field
+                    | Regex @"asset_params_get_(\w+)" [field] -> yield T.AssetParamsGet field
+
+                    | "balance"       -> yield T.Balance
+                    | "min_balance"   -> yield T.MinBalance
+                    | "app_local_get" -> yield T.AppLocalGet
+                    | "app_global_get"-> yield T.AppGlobalGet
+                    | "app_local_put" -> yield T.AppLocalPut
+                    | "app_global_put"-> yield T.AppGlobalPut
+                    | "assert"        -> yield T.Assert
+                    | "itob"          -> yield T.Itob
+                    | "btoi"          -> yield T.Btoi
+                    | "len"           -> yield T.Len
+                    | "concat"        -> yield T.Concat
+                    | "err"           -> yield T.Err
+
+                    | _ -> raise UnsupportedNative
+            
+                | _ -> raise UnsupportedNative
+
+            with UnsupportedNative ->
+                Report.error "native function %s.%s is not yet supported" mid fid
+                yield T.UnsupportedNative (sprintf "%s::%s" mid fid)
+        ]
+
     [
         match op with
         | M.Nop -> ()
@@ -245,7 +236,7 @@ let emit_opcode ctx (P : M.Module) (op : M.opcode) =
         | M.Pop -> yield T.Pop
         | M.Abort -> yield T.Err
         
-        | M.Ret ->  yield T.B ctx.exit_label
+        | M.Ret ->  yield T.B (exit_label ctx.P.name ctx.F.name)
                 
         | M.LdBool b -> yield T.PushInt (if b then 1UL else 0UL) 
         | M.LdU8 u  -> yield T.PushInt (uint64 u)
@@ -263,10 +254,17 @@ let emit_opcode ctx (P : M.Module) (op : M.opcode) =
         | M.Br (Some false, l) -> yield branch T.Bz l
 
         | M.Call (NonNative (mid, fid), ty_args) -> 
-            yield! emit_call P ctx.ty_params mid fid ty_args
+            TouchedFunCache.Add (mid, fid) |> ignore
+            for τ in ty_args do
+                match τ with
+                | TyGeneric instrs -> yield! instrs
+                // TODO this is wrong: we must append type argument names right-wise dynamically using type witnesses
+                | _ -> yield T.PushBytes (type_tag.of_ty ctx.P τ).as_bytes  
+            yield T.Callsub (solid_label mid fid) 
+
 
         | M.Call (Native (mid, fid), ty_args) -> 
-            yield! emit_call_native ctx.ty_params mid fid ty_args
+            yield! emit_call_native mid fid ty_args
 
         | M.ReadRef -> yield T.Callsub (lazy "ReadRef")        
         | M.WriteRef -> yield T.Callsub (lazy "WriteRef")
@@ -280,79 +278,85 @@ let emit_opcode ctx (P : M.Module) (op : M.opcode) =
             failwithf "unsupported constant type %A" ty
 
         | M.Pack σ ->
-            let S = P.struct_of_ty σ
+            let S = ctx.P.instantiate_struct σ
             let N = uint S.fields.Length
             if N > 0u then
                 for _, τ in S.fields do
                     yield T.Uncover (N - 1u)
                     match τ with
-                    | M.ty.Cons (s, []) when ctx.is_type_parameter s -> 
-                        let i = List.findIndex ((=) s) ctx.ty_params
-                        yield T.FrameDig (-(List.length ctx.ty_params - 1 - i) - 1)
-                        yield T.PushInt 7UL
-                        yield T.Getbit
-                        yield T.PushInt 1UL
-                        yield T.Eq
-                        let l = fresh_label P.name "no_integral"
-                        yield T.Bz l
-                        yield T.Itob
-                        yield T.Label l
+                    | TyGeneric instrs -> 
+                        yield! instrs
+                        yield T.Callsub (lazy "PackTyArg")
 
                     | _ when τ.is_integral -> yield T.Itob               
                     | _ -> ()
+
+                // TODO emit instructions for crafting header with offeset-len for each field
                     
-                for i = 1u to N do
+                for i = 1u to N - 1u do
                     yield T.Concat
 
-        | M.Unpack id -> 
-            let S = P.struct_by_name id
-            for x, ty in S.fields do
-                yield T.Dup
-                let d = P.offset_of_struct_field id x
-                let l = P.len_of_ty ty
-                yield T.Extract (d, l)
-                if ty.is_integral then yield T.Btoi
+        | M.Unpack σ -> 
+            let S = ctx.P.instantiate_struct σ
+            for i = 0UL to uint64 <| S.fields.Length - 1 do
+                let x, τ = S.fields.[int i]
+                yield T.Dupn 3u
+                yield T.PushInt (i * 4UL)
+                yield T.Extract_uint16     // offset
+                yield T.Swap
+                yield T.PushInt (i * 4UL + 2UL)
+                yield T.Extract_uint16     // len
+                yield T.Extract3
+                match τ with
+                | TyGeneric instrs -> 
+                    yield! instrs
+                    yield T.Callsub (lazy "UnpackTyArg")
+
+                | _ when τ.is_integral -> yield T.Btoi
+                | _ -> ()
                 yield T.Swap
             yield T.Pop
 
-        | M.BorrowField (sid, fid, fty) ->
-            let d = P.offset_of_struct_field sid fid ||| (if fty.is_integral then 0us else 0x8000us)   // set bit 15 if deserialization is needed
-            let l = P.len_of_ty fty
-            let uint16_to_bytes (n : uint16) = [| byte (n >>> 8); byte (n &&& 0x00ffus) |]
-            yield T.PushBytes [| yield! uint16_to_bytes d; yield! uint16_to_bytes l |]
-
-        | M.BorrowGlobal id ->
-            yield T.PushBytes [| byte 0x01; P.index_of_struct id |]
-            yield T.Swap
+        | M.BorrowField (sid, fid, τ) ->
+            let S = ctx.P.struct_by_name sid
+            let i = List.findIndex (fst >> (=) fid) S.fields
+            yield T.PushBytes [| byte i |]  
             yield T.Concat
+
+
+        | M.BorrowGlobal τ ->
+            // TODO test borrow globals and check whether address is present on the stack
+            yield T.PushBytes [| byte 0x01; ctx.P.index_of_struct τ.raw |]  // TODO index of struct should be hashed from the fully qualified struct typename
+            yield T.Swap
+            yield T.Concat  
 
         | M.BorrowLoc i -> yield T.PushBytes [| byte 0x00; byte i |]
         
-        | M.Exists id -> 
+        | M.Exists τ ->             
             yield T.Txn "ApplicationID"
-            yield T.PushBytes [| P.index_of_struct id |]
+            yield T.PushBytes [| ctx.P.index_of_struct τ.raw |]
             yield T.AppLocalGetEx
             yield T.Uncover 1u
             yield T.Pop
 
-        | M.MoveTo id ->
-            yield T.PushBytes [| P.index_of_struct id |]
+        | M.MoveTo τ ->
+            yield T.PushBytes [| ctx.P.index_of_struct τ.raw |]
             yield T.Swap
             yield T.AppLocalPut
 
-        | M.MoveFrom id -> 
-            yield T.PushBytes [| P.index_of_struct id |]
+        | M.MoveFrom τ -> 
+            yield T.PushBytes [| ctx.P.index_of_struct τ.raw |]
             yield T.Dup2
             yield T.AppLocalGet
             yield T.Cover 2u
             yield T.AppLocalDel
     ]
 
-let emit_instrs ctx P (instrs : M.opcode array) =
+let emit_instrs ctx (instrs : M.opcode array) =
     [
         for i = 0 to instrs.Length - 1 do
             let mop = instrs.[i]
-            match emit_opcode ctx P mop with
+            match emit_opcode ctx mop with
             | [] -> ()
             | top1 :: tops ->
                 yield T.Label ctx.labels.[i]
@@ -366,13 +370,14 @@ let emit_fun (P : M.Module) (F : M.Fun) =
             let N = F.paramss.Length
             let TN = F.ty_params.Length
             let ctx = {
-                    exit_label = exit_label P.name F.name
                     labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.name i |]
                     ty_params = F.ty_params
+                    P = P
+                    F = F
                 }
             // preamble
             yield T.Label (solid_label P.name F.name)
-            yield T.Proto (uint (N + TN), 1u)
+            yield T.Proto (uint (N + TN), if F.ret.IsNone then 0u else 1u)
             let M = 
                 match F.max_local_index with
                 | None -> -1
@@ -384,11 +389,11 @@ let emit_fun (P : M.Module) (F : M.Fun) =
                 yield T.Store (uint <| N - i - 1)
             
             // body            
-            yield! emit_instrs ctx P F.body
+            yield! emit_instrs ctx F.body
  
             // epilogue
-            yield T.Label ctx.exit_label
-            yield T.Cover (uint <| M + 1)
+            yield T.Label (exit_label P.name F.name)
+            if F.ret.IsSome then yield T.FrameBury 0
             for i = int M downto 0 do 
                 yield T.Store (uint i)
             yield T.Retsub
@@ -423,7 +428,7 @@ let (|Signer|_|) (ty : M.ty) =
 let emit_preamble (P : M.Module) =
     let funs = List.filter (fun (F : M.Fun) -> List.contains M.qual.Entry F.quals) P.funs
     if funs.Length = 0 then
-        Report.warn "no entry function found in module '%s'. Library modules include no dispatcher in the preamble." P.name
+        Report.warn "no entry function found in module '%s'. Library modules include no function dispatcher in the generated TEAL preamble." P.name
         false, []
     else
         Report.info "found %d entry functions in module '%s'" funs.Length P.name
@@ -449,14 +454,14 @@ let emit_preamble (P : M.Module) =
                     for i = 0 to F.paramss.Length - 1 do
                         match F.paramss.[i] with
                         | _, Signer -> yield T.Txn "Sender"
-                        | x, ty -> 
+                        | x, τ -> 
                             yield T.Load 0u
                             let d = P.offset_of_field args_no_signer x
-                            let l = P.len_of_ty ty
+                            let l = P.len_of_ty τ
                             yield T.Extract (d, l)
-                            if ty.is_integral then yield T.Btoi
+                            if τ.is_integral then yield T.Btoi
                     // call the entry function
-                    yield! emit_call P [] P.name F.name []
+                    yield! emit_opcode { labels = [||]; ty_params = []; P = P; F = F } (M.Call ((None, F.name), []))
                     yield T.Return
               ]
 

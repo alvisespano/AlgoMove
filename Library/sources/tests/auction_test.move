@@ -2,7 +2,6 @@ module algomove::auction_test {
 
 	use algomove::auction_with_item as au;
 	use algomove::asset::{Self};
-	use algomove::utils;
 
 	struct EUR {}
 

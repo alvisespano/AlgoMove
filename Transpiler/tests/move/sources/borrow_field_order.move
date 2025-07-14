@@ -27,7 +27,7 @@ module deploy_address::borrow_field_order {
 	public entry fun manipulation() {
 		let n = 5;
 
-		let m: &u64 = &n;
+		let _m: &u64 = &n;
 
     	let a = A { u: n, b: false };
 		let b = B { u: 18, b: true };
@@ -36,7 +36,7 @@ module deploy_address::borrow_field_order {
 
     	let a_b = A { u: c.x.u + c.y.u, b: c.x.b && c.y.b };
 
-		let n1 = c.y.u * a_b.u + c.x.u;
+		let _n1 = c.y.u * a_b.u + c.x.u;
 	}
 
 	public fun read_ref1(r: &u64): u64 {

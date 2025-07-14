@@ -22,7 +22,7 @@ module deploy_address::loops_and_rec {
 
 	public fun get_out(x: u64) {
 		if (x > 0) {
-			let y = x + 1;
+			let _y = x + 1;
 			return
 		}
 	}

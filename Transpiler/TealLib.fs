@@ -15,8 +15,35 @@ let header_no_dispatcher = """
 
 """
 
+// TODO fix ReadRef and WriteRef with new pointer format 
 let epilogue = """
 // ---- AlgoMove TealLib Epilogue ----
+
+PackTyArg:
+	proto 1 1
+	frame_dig -1
+	pushint 7
+	getbit
+	pushint 1
+	==
+	bz PackTyArg.exit
+	itob
+PackTyArg.exit:
+	frame_bury 0
+	retsub
+
+UnpackTyArg:
+	proto 1 1
+	frame_dig -1
+	pushint 7
+	getbit
+	pushint 1
+	==
+	bz UnpackTyArg.exit
+	btoi
+UnpackTyArg.exit:
+	frame_bury 0
+	retsub
 
 ReadRef:
 	// preamble
