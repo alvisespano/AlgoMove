@@ -30,11 +30,6 @@ module Move =
             | "vector", Some "u8" -> ty.Cons ("vector", [ty.U8])
             | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Move const type '%s%s' not recognized" cons (Option.map (sprintf "(%s)") arg |> Option.defaultValue "")
 
-        member self.raw =
-            match self with
-            | Cons (id, _) -> id
-            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "Raw type of non-struct '%A'" self
-
         override self.ToString () =
             match self with
             | Bool -> "bool"
@@ -97,16 +92,16 @@ module Move =
         | CastU16
         | CastU32
         | CastU64
-        | Pack of id    // the struct typename must be local and cannot be a qid
-        | Unpack of id
+        | Pack of ty    // the struct typename must be local and cannot be a qid
+        | Unpack of ty
         | Br of bool option * label
         | Ret
         | BorrowField of id * id * ty
-        | BorrowGlobal of id 
+        | BorrowGlobal of ty 
         | BorrowLoc of index
-        | Exists of id
-        | MoveTo of id
-        | MoveFrom of id
+        | Exists of ty
+        | MoveTo of ty
+        | MoveFrom of ty
 
     type ty_param = id
 
@@ -212,6 +207,7 @@ module Teal =
         | Len
         | Extract of uint16 * uint16
         | Extract3
+        | Getbit
         | Concat
         | Err
         | Proto of uint * uint
@@ -288,6 +284,7 @@ module Teal =
         | Assert -> "assert"
         | Itob -> "itob"
         | Btoi -> "btoi"
+        | Getbit -> "getbit"
         | Len -> "len"
         | Extract (s, l)-> sprintf "extract %d %d" s l
         | Extract3 -> "extract3"

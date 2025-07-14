@@ -1680,7 +1680,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 199 "Parser.fsy"
-                                                                                   _1 _6.raw 
+                                                                                   _1 _6 
                    )
 # 199 "Parser.fsy"
                  : 'gentype_opcode));

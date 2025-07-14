@@ -19,24 +19,38 @@ type M.ty with
         | M.ty.U16
         | M.ty.U32 
         | M.ty.U64 -> true
-        | _ -> false
+        | M.ty.Cons _ 
+        | M.ty.Ref _
+        | M.ty.MutRef _ 
+        | M.ty.Tuple _
+        | M.ty.Address -> false
 
-    member self.apply_subst θ = 
-        match self with
-        | M.ty.Cons (s, []) when Map.containsKey s θ -> Map.find s θ
-        | τ -> τ
+    //member self.apply_subst θ = 
+    //    match self with
+    //    | M.ty.Cons (s, []) when Map.containsKey s θ -> Map.find s θ
+    //    | τ -> τ
 
-
-type M.Struct with
-    member self.instantiate tys =
-        let θ = Map.ofList <| List.zip self.ty_params tys
-        { self with fields = [ for x, τ in self.fields do yield x, τ.apply_subst θ ] }
+//type M.Struct with
+//    member self.instantiate τs =
+//        let θ = Map.ofList <| List.zip self.ty_params τs
+//        { self with fields = [ for x, τ in self.fields do yield x, τ.apply_subst θ ] }
 
 
 type M.Module with
+
     member P.struct_by_name id = P.structs.[int <| P.index_of_struct id]
 
     member P.index_of_struct id = List.findIndex (fun (s : M.Struct) -> s.id = id) P.structs |> byte
+
+    //member P.instantiate_struct τs τ = 
+    //    match τ with
+    //    | M.ty.Cons (s, _ :: _) -> (P.struct_by_name s).instantiate τs
+    //    | τ -> unexpected_case __SOURCE_FILE__ __LINE__ "type %O must be a struct" τ 
+
+    member P.struct_of_ty τ =
+            match τ with
+            | M.ty.Cons (s, _) -> P.struct_by_name s
+            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "type %O must be a struct" τ
 
     member P.offset_of_struct_field sid fid = P.offset_of_field (P.struct_by_name sid).fields fid
 
@@ -45,7 +59,7 @@ type M.Module with
             | [] -> 0us
             | (id, τ) :: fields -> 
                 if id = fid then 0us
-                else P.len_of_ty ty + R fields 
+                else P.len_of_ty τ + R fields
         R fields |> uint16
 
     member P.len_of_ty τ : uint16 =
@@ -56,13 +70,11 @@ type M.Module with
         | M.ty.U32 -> 4us
         | M.ty.U64 -> 8us
         | M.ty.Address -> 32us
-        | M.ty.Cons (s, _) ->
         | M.ty.Cons (s, τs) ->
             try
-                let S = (P.struct_by_name s).instantiate τs
+                let S = P.struct_by_name s
                 List.sumBy (fun (_, τ) -> P.len_of_ty τ) S.fields |> uint16
-            with _ -> Report.warn "typename %s is a generic type. Generics are not supported. Defaulting length to %d bytes" s Config.generic_field_default_length
-                      uint16 Config.generic_field_default_length
+            with :? System.ArgumentException -> unexpected "typename %s is a generic type" __SOURCE_FILE__ __LINE__ s
 
         | M.ty.Ref _ | M.ty.MutRef _ | M.ty.Tuple _ -> unexpected_case __SOURCE_FILE__ __LINE__ "type %O should not appear in structs" τ
 
@@ -78,7 +90,7 @@ type M.Fun with
                   | l    -> Some (uint (Array.max l))
 
 
-// context and misc types
+// context related studd
 //
             
 type context = {
@@ -86,18 +98,23 @@ type context = {
     labels : T.label array
     ty_params : M.ty_param list
 }
+with
+    member self.is_type_parameter s = List.contains s self.ty_params
 
 let touch_label (L : T.label) = ignore <| L.Force (); L
 let qid_label_name mid fid = sprintf "%s%c%s" mid Config.teal_label_module_sep fid
 let sublabel_name mid fid sub = sprintf "%s%c%s" (qid_label_name mid fid) Config.teal_sublabel_sep sub
 let solid_label mid fid = lazy (qid_label_name mid fid) |> touch_label
+let fresh_label mid name = lazy (sublabel_name mid name (fresh_int () |> string)) |> touch_label
 let exit_label mid fid = lazy (sublabel_name mid fid Config.teal_exit_sublabel)
 let instr_label mid fid i = lazy (sublabel_name mid fid (string i)) 
 
-type type_tag = { len: uint16; name: string }
+type type_tag = { is_integral: bool; name: string }
 with
-    static member of_ty (P : M.Module) τ = { len = P.len_of_ty τ; name = sprintf "%O" τ }
-    member self.as_bytes = sprintf "%04x%O" self.len self.name |> Seq.map byte |> Array.ofSeq
+    static member of_ty (P : M.Module) (τ : M.ty) = { is_integral = τ.is_integral; name = sprintf "%O" τ }
+
+    member self.as_bytes = sprintf "%1d%O" (if self.is_integral then 1 else 0) self.name |> Seq.map byte |> Array.ofSeq
+
 
 
 
@@ -113,12 +130,12 @@ let private TouchedFunCache = System.Collections.Generic.HashSet<M.id * M.id>()
 let emit_call P ty_params mid fid (ty_args : M.ty list) =
     TouchedFunCache.Add (mid, fid) |> ignore
     [ 
-        let N = List.length ty_params
         for τ in ty_args do
             match τ with
-            | M.ty.Cons (id, []) when List.contains id ty_params -> 
-                let i = List.findIndex ((=) id) ty_params
-                yield T.FrameDig (-(N - 1 - i) - 1)
+            // TODO this case is used multiple times: refactorize it
+            | M.ty.Cons (s, []) when List.contains s ty_params -> 
+                let i = List.findIndex ((=) s) ty_params
+                yield T.FrameDig (-(List.length ty_params - 1 - i) - 1)
 
             | _ -> yield T.PushBytes (type_tag.of_ty P τ).as_bytes
         yield T.Callsub (solid_label mid fid) 
@@ -138,8 +155,15 @@ let emit_call_native ty_params mid fid (ty_args : M.ty list) =
                 | "address_of_signer"
                 | "bytes_of_address" -> ()
                 | "name_of" ->
-                    yield T.FrameDig -1
-//                    yield T.
+                    match ty_args.[0] with
+                    | M.ty.Cons (s, []) when List.contains s ty_params -> 
+                        let i = List.findIndex ((=) s) ty_params
+                        yield T.FrameDig (-(List.length ty_params - 1 - i) - 1)
+                        yield T.Extract (1us, 0us)
+
+                    | τ ->
+                        yield T.PushBytes (τ.ToString () |> Seq.map byte |> Seq.toArray)
+                        
 
                 | _ -> raise UnsupportedNative
 
@@ -255,14 +279,29 @@ let emit_opcode ctx (P : M.Module) (op : M.opcode) =
             Report.error "constants of type %A is not supported" op
             failwithf "unsupported constant type %A" ty
 
-        | M.Pack id ->
-            let S = P.struct_by_name id
-            let n = uint S.fields.Length
-            if n > 0u then
-                for _, ty in S.fields do
-                    yield T.Uncover (n - 1u)
-                    if ty.is_integral then yield T.Itob
-                for i = 1u to n do
+        | M.Pack σ ->
+            let S = P.struct_of_ty σ
+            let N = uint S.fields.Length
+            if N > 0u then
+                for _, τ in S.fields do
+                    yield T.Uncover (N - 1u)
+                    match τ with
+                    | M.ty.Cons (s, []) when ctx.is_type_parameter s -> 
+                        let i = List.findIndex ((=) s) ctx.ty_params
+                        yield T.FrameDig (-(List.length ctx.ty_params - 1 - i) - 1)
+                        yield T.PushInt 7UL
+                        yield T.Getbit
+                        yield T.PushInt 1UL
+                        yield T.Eq
+                        let l = fresh_label P.name "no_integral"
+                        yield T.Bz l
+                        yield T.Itob
+                        yield T.Label l
+
+                    | _ when τ.is_integral -> yield T.Itob               
+                    | _ -> ()
+                    
+                for i = 1u to N do
                     yield T.Concat
 
         | M.Unpack id -> 

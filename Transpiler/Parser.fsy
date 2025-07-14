@@ -196,7 +196,7 @@ opcode:
     opcodes_no_imm                                          { $1 }
   | opcodes_index SQBRA index SQKET BRA ID COLON ty KET     { $1 $3 }
   | opcodes_label BRA label KET                             { $1 $3 }
-  | opcode_type SQBRA index SQKET BRA ty KET                { $1 $6.raw }
+  | opcode_type SQBRA index SQKET BRA ty KET                { $1 $6 }
 
   | BORROWFIELD SQBRA index SQKET BRA ID DOT ID COLON ty KET   { BorrowField ($6, $8, $10) }
 
