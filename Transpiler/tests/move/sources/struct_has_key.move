@@ -85,11 +85,12 @@ module deploy_address::struct_has_key {
 		*s1 = Simple { f: 1, g: true };
 	}
 
-	public fun borrow5(account: address ): bool acquires Simple, Nested1, Nested3 {
+	public fun borrow5(account: address ): bool acquires Simple, Nested1, Nested3, Nested2 {
 		let s1 = borrow_global_mut<Simple>(account);
 		let s2 = borrow_global_mut<Nested1>(account);
 		let s3 = borrow_global_mut<Nested3>(account);
-		let n = s1.f + s2.b + s3.b;
+		let s4 = borrow_global_mut<Nested2<Nested1>>(account);
+		let n = s1.f + s2.b + s3.b + s4.a.b;
 		if (n < 100) true else false
 	}
 

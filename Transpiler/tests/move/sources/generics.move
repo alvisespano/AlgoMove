@@ -5,6 +5,11 @@ module deploy_address::generics {
         b: T
     }
 
+    struct Res<T: store> has key {
+        a: u64,
+        b: T
+    }
+
     public fun g<S: drop + copy>(x: S): S {
         x
     }
@@ -17,6 +22,11 @@ module deploy_address::generics {
 
     public fun h<T: drop + copy>(v: T, x: MyStruct<T>) {
         x.b = v;
+    }
+
+    public fun borrow1<T: store>(a: address) acquires Res {
+        let x = borrow_global<Res<T>>(a);
+    
     }
 
     public entry fun main() {

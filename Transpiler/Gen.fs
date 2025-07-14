@@ -102,7 +102,6 @@ let touch_label (L : T.label) = ignore <| L.Force (); L
 let qid_label_name mid fid = sprintf "%s%c%s" mid Config.teal_label_module_sep fid
 let sublabel_name mid fid sub = sprintf "%s%c%s" (qid_label_name mid fid) Config.teal_sublabel_sep sub
 let solid_label mid fid = lazy (qid_label_name mid fid) |> touch_label
-let fresh_label mid name = lazy (sublabel_name mid name (fresh_int () |> string)) |> touch_label
 let exit_label mid fid = lazy (sublabel_name mid fid Config.teal_exit_sublabel)
 let instr_label mid fid i = lazy (sublabel_name mid fid (string i)) 
 
@@ -124,16 +123,11 @@ let private ImportCache = System.Collections.Generic.Dictionary<M.id, _>()
 
 let private TouchedFunCache = System.Collections.Generic.HashSet<M.id * M.id>()
 
-
-
-
-
-
-
-
 let emit_opcode (ctx : context) (op : M.opcode) =
         
     let branch cons l = cons (touch_label ctx.labels.[int l])
+    let fresh_label () = lazy (sublabel_name ctx.P.name ctx.F.name (fresh_int () |> string)) |> touch_label
+
 
     let (|Native|NonNative|) (qid, fid) =
         let m = 
@@ -291,10 +285,39 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                     | _ when τ.is_integral -> yield T.Itob               
                     | _ -> ()
 
-                // TODO emit instructions for crafting header with offeset-len for each field
+                // craft struct header: (offset, len) pairs
+                yield T.PushInt 0UL
+                yield T.Store 255u
+                yield T.PushInt (uint64 (S.fields.Length - 1))
+                yield T.Store 254u
+                let l = fresh_label ()
+                yield T.Label l
+                yield T.Dig (N - 1u)
+                yield T.Len
+                yield T.Dup
+                yield T.Load 255u
+                yield T.Dup
+                yield T.Uncover 1u
+                yield T.Add
+                yield T.Store 255u
+                yield T.Itob
+                yield T.Extract (6u, 2u)    // lowest 16 bits
+                yield T.Swap
+                yield T.Itob
+                yield T.Extract (6u, 2u)
+                yield T.Swap
+                yield T.Concat 
+                yield T.Load 254u
+                yield T.PushInt 1UL
+                yield T.Sub
+                yield T.PushInt 0UL
+                yield T.Eq
+                yield T.Bnz l
                     
-                for i = 1u to N - 1u do
+                for i = 1u to N * 2u - 1u do
                     yield T.Concat
+
+                    
 
         | M.Unpack σ -> 
             let S = ctx.P.instantiate_struct σ
@@ -325,8 +348,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
 
 
         | M.BorrowGlobal τ ->
-            // TODO test borrow globals and check whether address is present on the stack
-            yield T.PushBytes [| byte 0x01; ctx.P.index_of_struct τ.raw |]  // TODO index of struct should be hashed from the fully qualified struct typename
+            yield T.PushBytes [| byte 0x01; ctx.P.index_of_struct τ.raw |]  
             yield T.Swap
             yield T.Concat  
 

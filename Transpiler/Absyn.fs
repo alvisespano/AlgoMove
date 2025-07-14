@@ -134,6 +134,7 @@ module Teal =
         | Uncover of uint
         | FrameDig of int 
         | FrameBury of int 
+        | Dig of uint
 
         // Arithmetic
         | Add
@@ -235,6 +236,7 @@ module Teal =
         | Uncover n -> sprintf "uncover %d" n
         | FrameDig n -> sprintf "frame_dig %d" n
         | FrameBury n -> sprintf "frame_bury %d" n
+        | Dig n -> sprintf "dig %d" n
         | Add -> "+"
         | Sub -> "-"
         | Mul -> "*"
