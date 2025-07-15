@@ -1361,7 +1361,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 149 "Parser.fsy"
-                                                       ty.Ref _2 
+                                                       ty.Ref (false, _2) 
                    )
 # 149 "Parser.fsy"
                  : 'gentype_ty));
@@ -1372,7 +1372,7 @@ let _fsyacc_reductions = lazy [|
                 (
                    (
 # 150 "Parser.fsy"
-                                                       ty.MutRef _3 
+                                                       ty.Ref (true, _3) 
                    )
 # 150 "Parser.fsy"
                  : 'gentype_ty));

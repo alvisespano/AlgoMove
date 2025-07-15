@@ -28,7 +28,7 @@ type M.ty with
     member self.raw =
             match self with
             | M.ty.Cons (id, _) -> id
-            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "raw type of non-struct '%A'" self
+            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ (sprintf "raw type of non-struct %O" self)
 
     member self.apply_subst θ = 
         match self with
@@ -48,12 +48,16 @@ type M.Module with
 
     member P.index_of_struct id = List.findIndex (fun (s : M.Struct) -> s.id = id) P.structs |> byte
 
+    member P.key_of_ty (τ : M.ty) =
+        let id = τ.raw
+        let i = P.index_of_struct id
+        hash(P.name, i) &&& 0xff |> byte
+
     member P.instantiate_struct τ =
             match τ with
             | M.ty.Cons (s, τs) -> (P.struct_by_name s).instantiate τs
-            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "type %O must be a struct" τ
+            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ (sprintf "type %O must be a struct" τ)
 
-    member P.offset_of_struct_field sid fid = P.offset_of_field (P.struct_by_name sid).fields fid
 
     member P.offset_of_field fields fid : uint =
         let rec R = function
@@ -66,13 +70,13 @@ type M.Module with
     member P.len_of_ty τ : uint =
         match τ with
         | TyIntegral _ -> 8u
+        | M.ty.Address -> 32u
         | M.ty.Cons (s, _) ->
             try
                 let S = P.struct_by_name s
                 List.sumBy (fun (_, τ) -> P.len_of_ty τ) S.fields |> uint
             with :? System.ArgumentException -> unexpected "typename %s is a generic type" __SOURCE_FILE__ __LINE__ s
-
-        | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "type %O should not appear in structs" τ
+        | _ -> unexpected_case __SOURCE_FILE__ __LINE__ (sprintf "type %O should not appear in structs" τ)
 
 type M.Fun with
     member F.max_local_index =
@@ -147,7 +151,6 @@ let emit_opcode (ctx : context) (op : M.opcode) =
         | _ -> None
 
     let emit_call_native mid fid (ty_args : M.ty list) =
-
         let (|Regex|_|) pattern input =
             let m = Regex.Match (input, pattern)
             if m.Success then Some (List.tail [ for g in m.Groups -> g.Value ])
@@ -160,7 +163,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                     | "address_of_signer"
                     | "bytes_of_address" -> ()
                     | "name_of" ->
-                        match ty_args.[0] with
+                        match ty_args.[0] with  // TODO check this works or fix it
                         | TyParam instrs -> 
                             yield! instrs
                             yield T.Extract (1u, 0u)    // name part
@@ -203,7 +206,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                 yield T.UnsupportedNative (sprintf "%s::%s" mid fid)
         ]
 
-    let rec emit_type_tag σ =
+    let rec emit_type_witness σ =
         [
             match σ with
             | TyParam instrs     -> yield! instrs
@@ -212,17 +215,17 @@ let emit_opcode (ctx : context) (op : M.opcode) =
   
             | M.ty.Cons (id, τ1 :: τs) ->
                 yield T.PushBytes (sprintf "0%s<" id |> bytes_of_string)
-                yield! emit_type_tag τ1
+                yield! emit_type_witness τ1
                 yield T.Concat
                 for τ in τs do
                     yield T.PushBytes ("," |> bytes_of_string)
                     yield T.Concat
-                    yield! emit_type_tag τ
+                    yield! emit_type_witness τ
                     yield T.Concat
                 yield T.PushBytes (">" |> bytes_of_string)
                 yield T.Concat
  
-            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "emitting type tag of %O" σ
+            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ (sprintf "emitting type tag of %O" σ)
         ]
 
     let access_slot (i : M.index) arg local = 
@@ -281,9 +284,8 @@ let emit_opcode (ctx : context) (op : M.opcode) =
         | M.Call (NonNative (mid, fid), ty_args) -> 
             TouchedFunCache.Add (mid, fid) |> ignore
             for τ in ty_args do
-                yield! emit_type_tag τ
+                yield! emit_type_witness τ
             yield T.Callsub (solid_label mid fid) 
-
 
         | M.Call (Native (mid, fid), ty_args) -> 
             yield! emit_call_native mid fid ty_args
@@ -309,10 +311,8 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                     | TyParam instrs -> 
                         yield! instrs
                         yield T.Callsub (lazy "PackTyArg")
-
                     | _ when τ.is_integral -> yield T.Itob               
                     | _ -> ()
-
                 // craft struct header: (offset, len) pairs
                 yield T.PushInt 0UL
                 yield T.Store 255u
@@ -326,7 +326,6 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                     
                 for i = 1u to N * 2u - 1u do
                     yield T.Concat
-
                     
 
         | M.Unpack σ -> 
@@ -344,11 +343,11 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                 | TyParam instrs -> 
                     yield! instrs
                     yield T.Callsub (lazy "UnpackTyArg")
-
                 | _ when τ.is_integral -> yield T.Btoi
                 | _ -> ()
                 yield T.Swap
             yield T.Pop
+
 
         | M.BorrowField (sid, fid, τ) ->
             let S = ctx.P.struct_by_name sid
@@ -358,7 +357,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
 
 
         | M.BorrowGlobal τ ->
-            yield T.PushBytes [| byte 0x01; ctx.P.index_of_struct τ.raw |]  
+            yield T.PushBytes [| byte 0x01; ctx.P.key_of_ty τ |]  
             yield T.Swap
             yield T.Concat  
 
@@ -366,18 +365,18 @@ let emit_opcode (ctx : context) (op : M.opcode) =
         
         | M.Exists τ ->             
             yield T.Txn "ApplicationID"
-            yield T.PushBytes [| ctx.P.index_of_struct τ.raw |]
+            yield T.PushBytes [| ctx.P.key_of_ty τ |]
             yield T.AppLocalGetEx
             yield T.Uncover 1u
             yield T.Pop
 
         | M.MoveTo τ ->
-            yield T.PushBytes [| ctx.P.index_of_struct τ.raw |] // TODO check the key thing
+            yield T.PushBytes [| ctx.P.key_of_ty τ |] 
             yield T.Swap
             yield T.AppLocalPut
 
         | M.MoveFrom τ -> 
-            yield T.PushBytes [| ctx.P.index_of_struct τ.raw |]
+            yield T.PushBytes [| ctx.P.key_of_ty τ |]
             yield T.Dup2
             yield T.AppLocalGet
             yield T.Cover 2u
@@ -452,7 +451,7 @@ and import_module (_, id) =
 
 let (|Signer|_|) (ty : M.ty) =
     match ty with
-    | M.ty.Ref (M.ty.Cons ("signer", [])) -> Some ()
+    | M.ty.Ref (false, M.ty.Cons ("signer", [])) -> Some ()
     | _ -> None
 
 let emit_preamble (P : M.Module) =

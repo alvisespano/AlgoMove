@@ -17,10 +17,11 @@ let header_no_dispatcher = """
 
 // TODO fix ReadRef and WriteRef with new pointer format 
 let epilogue = """
-// ---- AlgoMove TealLib Epilogue ----
+//
+// ---- AlgoMove TealLib ----
+//
 
-// assumes: 255 = counter, 254 = #field - 1
-PackField:
+PackField:	// assumes: 255 = counter, 254 = #field - 1
 	proto 1 1
 	frame_dig -1
     len
@@ -44,7 +45,6 @@ PackField:
     ==
 	frame_bury 0
 	retsub
-
 
 PackTyArg:
 	proto 1 1

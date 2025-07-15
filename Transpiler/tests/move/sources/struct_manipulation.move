@@ -1,6 +1,6 @@
 module deploy_address::struct_manipulation {
 
-	struct A has drop, key, store {
+	struct A has drop, key, store, copy {
 		a: bool,
 		b: u64
 	}

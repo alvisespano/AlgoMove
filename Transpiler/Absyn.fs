@@ -20,8 +20,7 @@ module Move =
         | U64
         | Address
         | Cons of id * ty list
-        | Ref of ty
-        | MutRef of ty 
+        | Ref of bool * ty  // true = mutable
         | Tuple of ty list
     with 
         static member of_const_ty (cons : id, arg : id option) =
@@ -40,8 +39,8 @@ module Move =
             | Address -> "address"
             | Cons (s, []) -> s
             | Cons (s, tys) -> sprintf "%s<%s>" s (mappen_strings (sprintf "%O") "," tys)
-            | Ref ty -> sprintf "&%O" ty
-            | MutRef ty -> sprintf "&%O" ty 
+            | Ref (false, ty) -> sprintf "&%O" ty
+            | Ref (true, ty) -> sprintf "&mut %O" ty 
             | Tuple tys -> mappen_strings (sprintf "%O") "," tys
 
     type field = id * ty
