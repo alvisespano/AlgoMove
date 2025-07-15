@@ -201,13 +201,19 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                 yield T.UnsupportedNative (sprintf "%s::%s" mid fid)
         ]
 
+    let access_slot i arg local = 
+        let N = ctx.F.paramss.Length
+        if i < N then arg (-i - (ctx.F.ty_params.Length + 1))
+        else local (uint <| N - i - 1)
+
     [
         match op with
         | M.Nop -> ()
 
-        | M.MovLoc i -> yield T.Load i
-        | M.CpyLoc i -> yield T.Load i
-        | M.StLoc i -> yield T.Store i
+        | M.MovLoc i
+        | M.CpyLoc i -> yield access_slot (int i) T.FrameDig T.Load         
+        | M.StLoc i  -> yield access_slot (int i) T.FrameBury T.Store
+        
         | M.Add -> yield T.Add
         | M.Sub -> yield T.Sub
         | M.Mul -> yield T.Mul
@@ -253,7 +259,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                 match τ with
                 | TyGeneric instrs -> yield! instrs
                 // TODO this is wrong: we must append type argument names right-wise dynamically using type witnesses
-                | _ -> yield T.PushBytes (type_tag.of_ty ctx.P τ).as_bytes  
+                | _ -> yield T.PushBytes (type_tag.of_ty ctx.P τ).as_bytes
             yield T.Callsub (solid_label mid fid) 
 
 
@@ -288,30 +294,32 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                 // craft struct header: (offset, len) pairs
                 yield T.PushInt 0UL
                 yield T.Store 255u
-                yield T.PushInt (uint64 (S.fields.Length - 1))
+                yield T.PushInt (uint64 (N - 1u))
                 yield T.Store 254u
                 let l = fresh_label ()
                 yield T.Label l
                 yield T.Dig (N - 1u)
-                yield T.Len
-                yield T.Dup
-                yield T.Load 255u
-                yield T.Dup
-                yield T.Uncover 1u
-                yield T.Add
-                yield T.Store 255u
-                yield T.Itob
-                yield T.Extract (6u, 2u)    // lowest 16 bits
-                yield T.Swap
-                yield T.Itob
-                yield T.Extract (6u, 2u)
-                yield T.Swap
-                yield T.Concat 
-                yield T.Load 254u
-                yield T.PushInt 1UL
-                yield T.Sub
-                yield T.PushInt 0UL
-                yield T.Eq
+                // TODO try to optimize this long code
+                //yield T.Len
+                //yield T.Dup
+                //yield T.Load 255u
+                //yield T.Dup
+                //yield T.Uncover 1u
+                //yield T.Add
+                //yield T.Store 255u
+                //yield T.Itob
+                //yield T.Extract (6u, 2u)    // lowest 16 bits
+                //yield T.Swap
+                //yield T.Itob
+                //yield T.Extract (6u, 2u)
+                //yield T.Swap
+                //yield T.Concat 
+                //yield T.Load 254u
+                //yield T.PushInt 1UL
+                //yield T.Sub
+                //yield T.PushInt 0UL
+                //yield T.Eq
+                yield T.Callsub (lazy "PackField")
                 yield T.Bnz l
                     
                 for i = 1u to N * 2u - 1u do
@@ -362,7 +370,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
             yield T.Pop
 
         | M.MoveTo τ ->
-            yield T.PushBytes [| ctx.P.index_of_struct τ.raw |]
+            yield T.PushBytes [| ctx.P.index_of_struct τ.raw |] // TODO check the key thing
             yield T.Swap
             yield T.AppLocalPut
 
@@ -404,18 +412,15 @@ let emit_fun (P : M.Module) (F : M.Fun) =
                 match F.max_local_index with
                 | None -> -1
                 | Some M -> max (int M) (N - 1)
-            for i = 0 to M do 
+            for i = N to M do 
                 yield T.Load (uint i)
-            for i = 0 to N - 1 do 
-                yield T.FrameDig (-i - (TN + 1))
-                yield T.Store (uint <| N - i - 1)
             
             // body            
             yield! emit_instrs ctx F.body
  
             // epilogue
             yield T.Label (exit_label P.name F.name)
-            if F.ret.IsSome then yield T.FrameBury 0
+            if F.ret.IsSome then yield T.FrameBury 0    // TODO tuple support
             for i = int M downto 0 do 
                 yield T.Store (uint i)
             yield T.Retsub

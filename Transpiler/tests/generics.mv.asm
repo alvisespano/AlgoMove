@@ -4,6 +4,14 @@ struct MyStruct<T: copy + drop> has copy, drop {
 	a: u64,
 	b: T
 }
+struct Pair<A: copy + drop, B: copy + drop> has copy, drop {
+	fst: A,
+	snd: B
+}
+struct Res<T: store> has key {
+	a: u64,
+	b: T
+}
 
 public f<T: copy + drop>(x: T): T /* def_idx: 0 */ {
 B0:
@@ -46,5 +54,50 @@ B0:
 	6: PackGeneric[1](MyStruct<u8>)
 	7: Call h<u8>(u8, MyStruct<u8>)
 	8: Ret
+}
+public borrow1<T: store>(a: address) /* def_idx: 4 */ {
+L1:	x: &Res<T>
+B0:
+	0: MoveLoc[0](a: address)
+	1: ImmBorrowGlobalGeneric[2](Res<T>)
+	2: Pop
+	3: Ret
+}
+public locals<A: copy + drop, B: copy + drop, C: copy + drop>(a: A, b: B, n: u64, c: C): C /* def_idx: 5 */ {
+L4:	z: Pair<C, u64>
+L5:	w: Pair<Pair<B, B>, Pair<C, u64>>
+B0:
+	0: CopyLoc[1](b: B)
+	1: MoveLoc[1](b: B)
+	2: PackGeneric[3](Pair<B, B>)
+	3: CopyLoc[3](c: C)
+	4: CopyLoc[2](n: u64)
+	5: PackGeneric[4](Pair<C, u64>)
+	6: StLoc[4](z: Pair<C, u64>)
+	7: MoveLoc[2](n: u64)
+	8: ImmBorrowLoc[4](z: Pair<C, u64>)
+	9: ImmBorrowFieldGeneric[1](Pair.snd: B)
+	10: ReadRef
+	11: Add
+	12: StLoc[2](n: u64)
+	13: MoveLoc[4](z: Pair<C, u64>)
+	14: PackGeneric[5](Pair<Pair<B, B>, Pair<C, u64>>)
+	15: StLoc[5](w: Pair<Pair<B, B>, Pair<C, u64>>)
+	16: ImmBorrowLoc[5](w: Pair<Pair<B, B>, Pair<C, u64>>)
+	17: ImmBorrowFieldGeneric[2](Pair.fst: A)
+	18: ImmBorrowFieldGeneric[3](Pair.fst: A)
+	19: ReadRef
+	20: MoveLoc[0](a: A)
+	21: MoveLoc[3](c: C)
+	22: PackGeneric[6](Pair<A, C>)
+	23: Pop
+	24: MoveLoc[2](n: u64)
+	25: PackGeneric[7](Pair<B, u64>)
+	26: Pop
+	27: ImmBorrowLoc[5](w: Pair<Pair<B, B>, Pair<C, u64>>)
+	28: ImmBorrowFieldGeneric[4](Pair.snd: B)
+	29: ImmBorrowFieldGeneric[5](Pair.fst: A)
+	30: ReadRef
+	31: Ret
 }
 }

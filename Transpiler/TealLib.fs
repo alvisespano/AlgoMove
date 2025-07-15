@@ -19,6 +19,32 @@ let header_no_dispatcher = """
 let epilogue = """
 // ---- AlgoMove TealLib Epilogue ----
 
+PackField:
+	proto 1 1
+	frame_dig -1
+    len
+    dup
+    load 255
+    dup
+    uncover 1
+    +
+    store 255
+    itob
+    extract 6 2    // lowest 16 bits
+    swap
+    itob
+    extract 6 2
+    swap
+    concat 
+    load 254
+    pushint 1
+    -
+    pushint 0
+    ==
+	frame_bury 0
+	retsub
+
+
 PackTyArg:
 	proto 1 1
 	frame_dig -1
