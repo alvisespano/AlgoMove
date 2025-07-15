@@ -1,6 +1,6 @@
 module deploy_address::struct_has_key {
 
-	//use std::signer;
+	use deploy_address::struct_manipulation as sm;
 
 	struct Simple has key, store, copy, drop {
 		f: u64,
@@ -12,7 +12,7 @@ module deploy_address::struct_has_key {
 		b: u64
 	}
 
-	struct Nested2<T: store> has key {
+	struct Nested2<T: store> has key, store {
 		a: T,
 		b: u64
 	}
@@ -54,6 +54,15 @@ module deploy_address::struct_has_key {
 		//let addr = signer::address_of(account);
 		//let addr2 = *signer::borrow_address(account);
 		move_to(account, s2);
+	}
+
+	public fun moveto_poly<T: store>(account: &signer, x: T) {
+		let s1 = Nested2<T> { a: x, b: 777 };
+		let s2 = Nested2<Nested2<T>> { a: s1, b: 888 };
+		let sma = sm::make_A();
+		let s3 = Nested2<sm::A> { a: sma, b: 888 };
+		move_to(account, s2);
+		move_to(account, s3);
 	}
 
 	public fun borrow1(account: address ): u64 acquires Simple {

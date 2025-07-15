@@ -20,12 +20,12 @@ let main argv =
                 File.WriteAllText (output, tprg)
                 0
             with Parsing.SyntaxError (msg, lexbuf) -> 
-                    let u = lexbuf.EndPos 
-                    Report.error "%s:%d:%d-%d: syntax error: %s (lexbuffer: %A)" (IO.Path.GetFileName u.FileName) u.Line lexbuf.StartPos.Column u.Column msg lexbuf.Lexeme
-                    1
-                    #if !DEBUG
-                  | e -> Report.error "\nexception caught: %O" e; 1
-                    #endif
+                let u = lexbuf.EndPos 
+                Report.error "%s:%d:%d-%d: syntax error: %s (lexbuffer: %A)" (IO.Path.GetFileName u.FileName) u.Line lexbuf.StartPos.Column u.Column msg lexbuf.Lexeme
+                1
+                #if !DEBUG
+                | e -> Report.error "\nexception caught: %O" e; 1
+                #endif
     #if DEBUG
     Console.ReadLine () |> ignore
     #endif

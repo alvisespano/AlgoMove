@@ -33,15 +33,15 @@
 	  <Compile Include="Main.fs" />
   </ItemGroup>
 
-  <ItemGroup />
-
   <ItemGroup>
     <PackageReference Include="FsLexYacc" Version="11.3.0" />
     <PackageReference Include="FsLexYacc.Runtime" Version="11.3.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\FSharp.Common\FSharp.Common.fsproj" />
+    <Reference Include="FSharp.Common">
+      <HintPath>FSharp.Common.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

@@ -90,6 +90,7 @@ type M.Fun with
 //
             
 type context = {
+    exit_label: T.label
     labels : T.label array
     ty_params : M.ty_param list
     P : M.Module
@@ -260,7 +261,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
         | M.Pop -> yield T.Pop
         | M.Abort -> yield T.Err
         
-        | M.Ret ->  yield T.B (exit_label ctx.P.name ctx.F.name)
+        | M.Ret ->  yield T.B ctx.exit_label
                 
         | M.LdBool b -> yield T.PushInt (if b then 1UL else 0UL) 
         | M.LdU8 u  -> yield T.PushInt (uint64 u)
@@ -401,6 +402,7 @@ let emit_fun (P : M.Module) (F : M.Fun) =
             let N = F.paramss.Length
             let TN = F.ty_params.Length
             let ctx = {
+                    exit_label = exit_label P.name F.name
                     labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.name i |]
                     ty_params = F.ty_params
                     P = P
@@ -420,7 +422,7 @@ let emit_fun (P : M.Module) (F : M.Fun) =
             yield! emit_instrs ctx F.body
  
             // epilogue
-            yield T.Label (exit_label P.name F.name)
+            yield T.Label ctx.exit_label
             if F.ret.IsSome then yield T.FrameBury 0    // TODO tuple support
             for i = int M downto N do 
                 yield T.Store (uint i)
@@ -489,7 +491,7 @@ let emit_preamble (P : M.Module) =
                             yield T.Extract (d, l)
                             if τ.is_integral then yield T.Btoi
                     // call the entry function
-                    yield! emit_opcode { labels = [||]; ty_params = []; P = P; F = F } (M.Call ((None, F.name), []))
+                    yield! emit_opcode { exit_label = lazy ""; labels = [||]; ty_params = []; P = P; F = F } (M.Call ((None, F.name), []))
                     yield T.Return
               ]
 

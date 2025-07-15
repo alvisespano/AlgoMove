@@ -25,6 +25,10 @@ module deploy_address::struct_manipulation {
 		g: bool
 	}
 
+	public fun make_A(): A {
+		A { a: true, b: 999 }
+	}
+
 	public entry fun manipulate1() {
 		let n = 5;
 		let s1 = Simple { f: n, g: false };

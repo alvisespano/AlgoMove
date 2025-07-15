@@ -1,10 +1,17 @@
 // Move bytecode v7
 module aaaa.struct_has_key {
+use 000000000000000000000000000000000000000000000000000000000000aaaa::struct_manipulation;
+
+
 struct Nested1 has store, key {
 	a: Simple,
 	b: u64
 }
-struct Nested2<T: store> has key {
+struct Simple has copy, drop, store, key {
+	f: u64,
+	g: bool
+}
+struct Nested2<T: store> has store, key {
 	a: T,
 	b: u64
 }
@@ -12,10 +19,6 @@ struct Nested3 has store, key {
 	a: Simple,
 	b: u64,
 	c: Simple
-}
-struct Simple has copy, drop, store, key {
-	f: u64,
-	g: bool
 }
 
 entry public main(account: &signer) /* def_idx: 0 */ {
@@ -30,7 +33,7 @@ public borrow1(account: address): u64 /* def_idx: 1 */ {
 L1:	s1: &mut Simple
 B0:
 	0: MoveLoc[0](account: address)
-	1: MutBorrowGlobal[3](Simple)
+	1: MutBorrowGlobal[1](Simple)
 	2: StLoc[1](s1: &mut Simple)
 	3: CopyLoc[1](s1: &mut Simple)
 	4: ImmBorrowField[0](Simple.f: u64)
@@ -49,7 +52,7 @@ public borrow2(account: address): u64 /* def_idx: 2 */ {
 L1:	u: &mut u64
 B0:
 	0: MoveLoc[0](account: address)
-	1: MutBorrowGlobal[3](Simple)
+	1: MutBorrowGlobal[1](Simple)
 	2: MutBorrowField[0](Simple.f: u64)
 	3: StLoc[1](u: &mut u64)
 	4: CopyLoc[1](u: &mut u64)
@@ -73,7 +76,7 @@ L3:	$t5: &u64
 L4:	$t8: Simple
 B0:
 	0: MoveLoc[0](account: address)
-	1: ImmBorrowGlobal[2](Nested3)
+	1: ImmBorrowGlobal[3](Nested3)
 	2: StLoc[1](s1: &Nested3)
 	3: CopyLoc[1](s1: &Nested3)
 	4: ImmBorrowField[1](Nested3.a: Simple)
@@ -98,10 +101,10 @@ L1:	$t2: Simple
 L2:	s1: &mut Simple
 B0:
 	0: MoveLoc[0](account: address)
-	1: MutBorrowGlobal[3](Simple)
+	1: MutBorrowGlobal[1](Simple)
 	2: LdU64(1)
 	3: LdTrue
-	4: Pack[3](Simple)
+	4: Pack[1](Simple)
 	5: StLoc[1]($t2: Simple)
 	6: StLoc[2](s1: &mut Simple)
 	7: MoveLoc[1]($t2: Simple)
@@ -116,12 +119,12 @@ L3:	s4: &mut Nested2<Nested1>
 L4:	$t18: bool
 B0:
 	0: CopyLoc[0](account: address)
-	1: MutBorrowGlobal[3](Simple)
+	1: MutBorrowGlobal[1](Simple)
 	2: CopyLoc[0](account: address)
 	3: MutBorrowGlobal[0](Nested1)
 	4: StLoc[1](s2: &mut Nested1)
 	5: CopyLoc[0](account: address)
-	6: MutBorrowGlobal[2](Nested3)
+	6: MutBorrowGlobal[3](Nested3)
 	7: StLoc[2](s3: &mut Nested3)
 	8: MoveLoc[0](account: address)
 	9: MutBorrowGlobalGeneric[0](Nested2<Nested1>)
@@ -162,8 +165,8 @@ B0:
 	2: LdU64(39)
 	3: Add
 	4: LdTrue
-	5: Pack[3](Simple)
-	6: MoveTo[3](Simple)
+	5: Pack[1](Simple)
+	6: MoveTo[1](Simple)
 	7: Ret
 }
 public moveto2(account: &signer) /* def_idx: 7 */ {
@@ -172,7 +175,7 @@ L2:	s2: Nested1
 B0:
 	0: LdU64(5)
 	1: LdFalse
-	2: Pack[3](Simple)
+	2: Pack[1](Simple)
 	3: StLoc[1](s1: Simple)
 	4: CopyLoc[1](s1: Simple)
 	5: LdU64(78)
@@ -180,7 +183,7 @@ B0:
 	7: StLoc[2](s2: Nested1)
 	8: CopyLoc[0](account: &signer)
 	9: MoveLoc[1](s1: Simple)
-	10: MoveTo[3](Simple)
+	10: MoveTo[1](Simple)
 	11: MoveLoc[0](account: &signer)
 	12: MoveLoc[2](s2: Nested1)
 	13: MoveTo[0](Nested1)
@@ -191,7 +194,7 @@ L1:	s3: Nested2<Nested1>
 B0:
 	0: LdU64(5)
 	1: LdFalse
-	2: Pack[3](Simple)
+	2: Pack[1](Simple)
 	3: LdU64(34)
 	4: Pack[0](Nested1)
 	5: LdU64(9099)
@@ -208,16 +211,38 @@ L2:	s2: Nested3
 B0:
 	0: LdU64(5)
 	1: LdFalse
-	2: Pack[3](Simple)
+	2: Pack[1](Simple)
 	3: StLoc[1](s1: Simple)
 	4: CopyLoc[1](s1: Simple)
 	5: LdU64(88)
 	6: MoveLoc[1](s1: Simple)
-	7: Pack[2](Nested3)
+	7: Pack[3](Nested3)
 	8: StLoc[2](s2: Nested3)
 	9: MoveLoc[0](account: &signer)
 	10: MoveLoc[2](s2: Nested3)
-	11: MoveTo[2](Nested3)
+	11: MoveTo[3](Nested3)
 	12: Ret
+}
+public moveto_poly<T: store>(account: &signer, x: T) /* def_idx: 10 */ {
+L2:	s2: Nested2<Nested2<T>>
+L3:	s3: Nested2<A>
+B0:
+	0: MoveLoc[1](x: T)
+	1: LdU64(777)
+	2: PackGeneric[1](Nested2<T>)
+	3: LdU64(888)
+	4: PackGeneric[2](Nested2<Nested2<T>>)
+	5: StLoc[2](s2: Nested2<Nested2<T>>)
+	6: Call struct_manipulation::make_A(): A
+	7: LdU64(888)
+	8: PackGeneric[3](Nested2<A>)
+	9: StLoc[3](s3: Nested2<A>)
+	10: CopyLoc[0](account: &signer)
+	11: MoveLoc[2](s2: Nested2<Nested2<T>>)
+	12: MoveToGeneric[2](Nested2<Nested2<T>>)
+	13: MoveLoc[0](account: &signer)
+	14: MoveLoc[3](s3: Nested2<A>)
+	15: MoveToGeneric[3](Nested2<A>)
+	16: Ret
 }
 }

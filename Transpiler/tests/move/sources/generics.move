@@ -20,8 +20,8 @@ module deploy_address::generics {
     }
 
     public fun f<T: drop + copy>(x: T): T {
-        let MyStruct<T> { a, b } = g(MyStruct<T> { a: 23, b: x });
-        a = a + 1;
+        let MyStruct<T> { a:_a, b } = g(MyStruct<T> { a: 23, b: x });
+        _a = _a + 1;
         b
 	}
 
@@ -30,12 +30,12 @@ module deploy_address::generics {
     }
 
     public fun borrow1<T: store>(a: address) acquires Res {
-        let x = borrow_global<Res<T>>(a);
+        let _x = borrow_global<Res<T>>(a);
     
     }
 
-    public fun pairs<A: copy + drop, B: copy + drop, C: copy + drop>(a1: A, a2: A, b: B, c: C): C {
-        a1 = a2;
+    public fun pairs<A: copy + drop, B: copy + drop, C: copy + drop>(_a1: A, a2: A, _b: B, c: C): C {
+        _a1 = a2;
         c
     }
 
@@ -45,8 +45,8 @@ module deploy_address::generics {
         let k2 = n + z.snd;
         let w = Pair<Pair<B, B>, Pair<C, u64>> { fst: x, snd: z };
         let k1 = w.fst.fst;
-        let y = Pair<A, C> { fst: a, snd: c };
-        let v = Pair<B, u64> { fst: k1, snd: k2 };
+        let _y = Pair<A, C> { fst: a, snd: c };
+        let _v = Pair<B, u64> { fst: k1, snd: k2 };
         let _ = pairs(x, x, w, z);
         let _ = g(w);
     }

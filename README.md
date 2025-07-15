@@ -6,9 +6,9 @@ Authors: Alvise Spanò, Lorenzo Benetollo, Michele Bugliesi, Silvia Crafa, Dalil
 # Other repos
 AlgoMove is under active development at its official repository: [http://github.com/lollobene/AlgoMove]
 
-# Aptos
+# Installing the Aptos toolchain
 AlgoMove relies on the Aptos toolchain, which include a full-blown Move compiler.
-Install the Aptos CLI for testing AlgoMove.
+Install the Aptos CLI for testing AlgoMove [https://aptos.dev/en/build/cli]
 
 # Installation and build
 The AlgoMove Transpiler is a standalone program written in F# and needs the F# toolchain to be built. 
