@@ -299,26 +299,6 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                 let l = fresh_label ()
                 yield T.Label l
                 yield T.Dig (N - 1u)
-                // TODO try to optimize this long code
-                //yield T.Len
-                //yield T.Dup
-                //yield T.Load 255u
-                //yield T.Dup
-                //yield T.Uncover 1u
-                //yield T.Add
-                //yield T.Store 255u
-                //yield T.Itob
-                //yield T.Extract (6u, 2u)    // lowest 16 bits
-                //yield T.Swap
-                //yield T.Itob
-                //yield T.Extract (6u, 2u)
-                //yield T.Swap
-                //yield T.Concat 
-                //yield T.Load 254u
-                //yield T.PushInt 1UL
-                //yield T.Sub
-                //yield T.PushInt 0UL
-                //yield T.Eq
                 yield T.Callsub (lazy "PackField")
                 yield T.Bnz l
                     

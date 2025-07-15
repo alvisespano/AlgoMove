@@ -19,6 +19,7 @@ let header_no_dispatcher = """
 let epilogue = """
 // ---- AlgoMove TealLib Epilogue ----
 
+// assumes: 255 = counter, 254 = #field - 1
 PackField:
 	proto 1 1
 	frame_dig -1
