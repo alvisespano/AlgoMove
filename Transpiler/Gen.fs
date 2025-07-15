@@ -210,7 +210,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
             | TyIntegral         -> yield T.PushBytes (sprintf "1%O" σ |> bytes_of_string)
   
             | M.ty.Cons (id, τ1 :: τs) ->
-                yield T.PushBytes (sprintf "0%O<" id |> bytes_of_string)
+                yield T.PushBytes (sprintf "0%s<" id |> bytes_of_string)
                 yield! emit_type_tag τ1
                 yield T.Concat
                 for τ in τs do

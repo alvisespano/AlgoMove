@@ -2,7 +2,7 @@
   "profiles": {
     "Transpiler": {
       "commandName": "Project",
-      "commandLineArgs": "tests/generics.mv.asm",
+      "commandLineArgs": "tests/struct_has_key.mv.asm",
       "workingDirectory": "$(ProjectDir)"
     }
   }
