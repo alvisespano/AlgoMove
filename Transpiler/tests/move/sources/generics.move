@@ -34,7 +34,12 @@ module deploy_address::generics {
     
     }
 
-    public fun locals<A: copy + drop, B: copy + drop, C: copy + drop>(a: A, b: B, n: u64, c: C): C {
+    public fun pairs<A: copy + drop, B: copy + drop, C: copy + drop>(a1: A, a2: A, b: B, c: C): C {
+        a1 = a2;
+        c
+    }
+
+    public fun locals<A: copy + drop, B: copy + drop, C: copy + drop>(a: A, b: B, n: u64, c: C) {
         let x = Pair<B, B> { fst: b, snd: b };
         let z = Pair<C, u64> { fst: c, snd: n };
         let k2 = n + z.snd;
@@ -42,7 +47,8 @@ module deploy_address::generics {
         let k1 = w.fst.fst;
         let y = Pair<A, C> { fst: a, snd: c };
         let v = Pair<B, u64> { fst: k1, snd: k2 };
-        w.snd.fst        
+        let _ = pairs(x, x, w, z);
+        let _ = g(w);
     }
 
     public entry fun main() {

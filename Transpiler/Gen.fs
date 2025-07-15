@@ -86,7 +86,7 @@ type M.Fun with
                   | l    -> Some (uint (Array.max l))
 
 
-// context related studd
+// context and misc stuff
 //
             
 type context = {
@@ -105,11 +105,13 @@ let solid_label mid fid = lazy (qid_label_name mid fid) |> touch_label
 let exit_label mid fid = lazy (sublabel_name mid fid Config.teal_exit_sublabel)
 let instr_label mid fid i = lazy (sublabel_name mid fid (string i)) 
 
-type type_tag = { is_integral: bool; name: string }
-with
-    static member of_ty (P : M.Module) (τ : M.ty) = { is_integral = τ.is_integral; name = sprintf "%O" τ }
+let bytes_of_string = Seq.map byte >> Seq.toArray
 
-    member self.as_bytes = sprintf "%1d%O" (if self.is_integral then 1 else 0) self.name |> Seq.map byte |> Array.ofSeq
+//type type_tag = { is_integral: bool; name: string }
+//with
+//    static member of_ty (P : M.Module) (τ : M.ty) = { is_integral = τ.is_integral; name = sprintf "%O" τ }
+
+//    member self.as_bytes = sprintf "%1d%O" (if self.is_integral then 1 else 0) self.name |> bytes_of_string
 
 
 
@@ -128,7 +130,6 @@ let emit_opcode (ctx : context) (op : M.opcode) =
     let branch cons l = cons (touch_label ctx.labels.[int l])
     let fresh_label () = lazy (sublabel_name ctx.P.name ctx.F.name (fresh_int () |> string)) |> touch_label
 
-
     let (|Native|NonNative|) (qid, fid) =
         let m = 
             match qid with
@@ -138,7 +139,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
         then Native (m.name, fid)
         else NonNative (m.name, fid)
             
-    let (|TyGeneric|_|) = function
+    let (|TyParam|_|) = function
         | M.ty.Cons (s, []) when ctx.is_type_parameter s -> 
             let i = List.findIndex ((=) s) ctx.ty_params
             Some [ T.FrameDig (-(List.length ctx.ty_params - 1 - i) - 1) ]
@@ -159,11 +160,11 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                     | "bytes_of_address" -> ()
                     | "name_of" ->
                         match ty_args.[0] with
-                        | TyGeneric instrs -> 
+                        | TyParam instrs -> 
                             yield! instrs
-                            yield T.Extract (1u, 0u)
+                            yield T.Extract (1u, 0u)    // name part
 
-                        | τ -> yield T.PushBytes (τ.ToString () |> Seq.map byte |> Seq.toArray)
+                        | τ -> yield T.PushBytes (τ.ToString () |> bytes_of_string)
                         
                     | _ -> raise UnsupportedNative
 
@@ -201,18 +202,41 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                 yield T.UnsupportedNative (sprintf "%s::%s" mid fid)
         ]
 
-    let access_slot i arg local = 
-        let N = ctx.F.paramss.Length
-        if i < N then arg (-i - (ctx.F.ty_params.Length + 1))
-        else local (uint <| N - i - 1)
+    let rec emit_type_tag σ =
+        [
+            match σ with
+            | TyParam instrs     -> yield! instrs
+            | M.ty.Cons (id, []) -> yield T.PushBytes (sprintf "0%s" id |> bytes_of_string)
+            | TyIntegral         -> yield T.PushBytes (sprintf "1%O" σ |> bytes_of_string)
+  
+            | M.ty.Cons (id, τ1 :: τs) ->
+                yield T.PushBytes (sprintf "0%O<" id |> bytes_of_string)
+                yield! emit_type_tag τ1
+                yield T.Concat
+                for τ in τs do
+                    yield T.PushBytes ("," |> bytes_of_string)
+                    yield T.Concat
+                    yield! emit_type_tag τ
+                    yield T.Concat
+                yield T.PushBytes (">" |> bytes_of_string)
+                yield T.Concat
+ 
+            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ "emitting type tag of %O" σ
+        ]
+
+    let access_slot (i : M.index) arg local = 
+        let N = uint ctx.F.paramss.Length
+        let TN = uint ctx.F.ty_params.Length
+        if i < N then arg -(int (TN + i + 1u))
+        else local i
 
     [
         match op with
         | M.Nop -> ()
 
         | M.MovLoc i
-        | M.CpyLoc i -> yield access_slot (int i) T.FrameDig T.Load         
-        | M.StLoc i  -> yield access_slot (int i) T.FrameBury T.Store
+        | M.CpyLoc i -> yield access_slot i T.FrameDig T.Load         
+        | M.StLoc i  -> yield access_slot i T.FrameBury T.Store
         
         | M.Add -> yield T.Add
         | M.Sub -> yield T.Sub
@@ -256,17 +280,14 @@ let emit_opcode (ctx : context) (op : M.opcode) =
         | M.Call (NonNative (mid, fid), ty_args) -> 
             TouchedFunCache.Add (mid, fid) |> ignore
             for τ in ty_args do
-                match τ with
-                | TyGeneric instrs -> yield! instrs
-                // TODO this is wrong: we must append type argument names right-wise dynamically using type witnesses
-                | _ -> yield T.PushBytes (type_tag.of_ty ctx.P τ).as_bytes
+                yield! emit_type_tag τ
             yield T.Callsub (solid_label mid fid) 
 
 
         | M.Call (Native (mid, fid), ty_args) -> 
             yield! emit_call_native mid fid ty_args
 
-        | M.ReadRef -> yield T.Callsub (lazy "ReadRef")        
+        | M.ReadRef -> yield T.Callsub (lazy "ReadRef")
         | M.WriteRef -> yield T.Callsub (lazy "WriteRef")
         | M.FreezeRef -> ()
 
@@ -284,7 +305,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                 for _, τ in S.fields do
                     yield T.Uncover (N - 1u)
                     match τ with
-                    | TyGeneric instrs -> 
+                    | TyParam instrs -> 
                         yield! instrs
                         yield T.Callsub (lazy "PackTyArg")
 
@@ -319,7 +340,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                 yield T.Extract_uint16     // len
                 yield T.Extract3
                 match τ with
-                | TyGeneric instrs -> 
+                | TyParam instrs -> 
                     yield! instrs
                     yield T.Callsub (lazy "UnpackTyArg")
 
@@ -401,7 +422,7 @@ let emit_fun (P : M.Module) (F : M.Fun) =
             // epilogue
             yield T.Label (exit_label P.name F.name)
             if F.ret.IsSome then yield T.FrameBury 0    // TODO tuple support
-            for i = int M downto 0 do 
+            for i = int M downto N do 
                 yield T.Store (uint i)
             yield T.Retsub
         ]

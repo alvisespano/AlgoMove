@@ -226,7 +226,7 @@ module Teal =
         //| UnsupportedOpcode mop -> sprintf "UNSUPPORTED_OPCODE[%A]" mop
         | UnsupportedNative s -> sprintf "UNSUPPORTED_NATIVE[%s]" s
         | PushInt n -> sprintf "pushint %d" n
-        | PushBytes b -> sprintf "pushbytes 0x%s\t// %s" (System.BitConverter.ToString(b).Replace("-", "")) (Text.Encoding.UTF8.GetString(b))
+        | PushBytes b -> sprintf "pushbytes 0x%s\t// \"%s\"" (System.BitConverter.ToString(b).Replace("-", "")) (Text.Encoding.UTF8.GetString(b))
         | Pop -> "pop"
         | Dup -> "dup"
         | Dup2 -> "dup2"

@@ -63,41 +63,54 @@ B0:
 	2: Pop
 	3: Ret
 }
-public locals<A: copy + drop, B: copy + drop, C: copy + drop>(a: A, b: B, n: u64, c: C): C /* def_idx: 5 */ {
-L4:	z: Pair<C, u64>
-L5:	w: Pair<Pair<B, B>, Pair<C, u64>>
+public locals<A: copy + drop, B: copy + drop, C: copy + drop>(a: A, b: B, n: u64, c: C) /* def_idx: 5 */ {
+L4:	x: Pair<B, B>
+L5:	z: Pair<C, u64>
+L6:	w: Pair<Pair<B, B>, Pair<C, u64>>
 B0:
 	0: CopyLoc[1](b: B)
 	1: MoveLoc[1](b: B)
 	2: PackGeneric[3](Pair<B, B>)
-	3: CopyLoc[3](c: C)
-	4: CopyLoc[2](n: u64)
-	5: PackGeneric[4](Pair<C, u64>)
-	6: StLoc[4](z: Pair<C, u64>)
-	7: MoveLoc[2](n: u64)
-	8: ImmBorrowLoc[4](z: Pair<C, u64>)
-	9: ImmBorrowFieldGeneric[1](Pair.snd: B)
-	10: ReadRef
-	11: Add
-	12: StLoc[2](n: u64)
-	13: MoveLoc[4](z: Pair<C, u64>)
-	14: PackGeneric[5](Pair<Pair<B, B>, Pair<C, u64>>)
-	15: StLoc[5](w: Pair<Pair<B, B>, Pair<C, u64>>)
-	16: ImmBorrowLoc[5](w: Pair<Pair<B, B>, Pair<C, u64>>)
-	17: ImmBorrowFieldGeneric[2](Pair.fst: A)
-	18: ImmBorrowFieldGeneric[3](Pair.fst: A)
-	19: ReadRef
-	20: MoveLoc[0](a: A)
-	21: MoveLoc[3](c: C)
-	22: PackGeneric[6](Pair<A, C>)
-	23: Pop
-	24: MoveLoc[2](n: u64)
-	25: PackGeneric[7](Pair<B, u64>)
-	26: Pop
-	27: ImmBorrowLoc[5](w: Pair<Pair<B, B>, Pair<C, u64>>)
-	28: ImmBorrowFieldGeneric[4](Pair.snd: B)
-	29: ImmBorrowFieldGeneric[5](Pair.fst: A)
-	30: ReadRef
-	31: Ret
+	3: StLoc[4](x: Pair<B, B>)
+	4: CopyLoc[3](c: C)
+	5: CopyLoc[2](n: u64)
+	6: PackGeneric[4](Pair<C, u64>)
+	7: StLoc[5](z: Pair<C, u64>)
+	8: MoveLoc[2](n: u64)
+	9: ImmBorrowLoc[5](z: Pair<C, u64>)
+	10: ImmBorrowFieldGeneric[1](Pair.snd: B)
+	11: ReadRef
+	12: Add
+	13: StLoc[2](n: u64)
+	14: CopyLoc[4](x: Pair<B, B>)
+	15: CopyLoc[5](z: Pair<C, u64>)
+	16: PackGeneric[5](Pair<Pair<B, B>, Pair<C, u64>>)
+	17: StLoc[6](w: Pair<Pair<B, B>, Pair<C, u64>>)
+	18: ImmBorrowLoc[6](w: Pair<Pair<B, B>, Pair<C, u64>>)
+	19: ImmBorrowFieldGeneric[2](Pair.fst: A)
+	20: ImmBorrowFieldGeneric[3](Pair.fst: A)
+	21: ReadRef
+	22: MoveLoc[0](a: A)
+	23: MoveLoc[3](c: C)
+	24: PackGeneric[6](Pair<A, C>)
+	25: Pop
+	26: MoveLoc[2](n: u64)
+	27: PackGeneric[7](Pair<B, u64>)
+	28: Pop
+	29: CopyLoc[4](x: Pair<B, B>)
+	30: MoveLoc[4](x: Pair<B, B>)
+	31: CopyLoc[6](w: Pair<Pair<B, B>, Pair<C, u64>>)
+	32: MoveLoc[5](z: Pair<C, u64>)
+	33: Call pairs<Pair<B, B>, Pair<Pair<B, B>, Pair<C, u64>>, Pair<C, u64>>(Pair<B, B>, Pair<B, B>, Pair<Pair<B, B>, Pair<C, u64>>, Pair<C, u64>): Pair<C, u64>
+	34: Pop
+	35: MoveLoc[6](w: Pair<Pair<B, B>, Pair<C, u64>>)
+	36: Call g<Pair<Pair<B, B>, Pair<C, u64>>>(Pair<Pair<B, B>, Pair<C, u64>>): Pair<Pair<B, B>, Pair<C, u64>>
+	37: Pop
+	38: Ret
+}
+public pairs<A: copy + drop, B: copy + drop, C: copy + drop>(a1: A, a2: A, b: B, c: C): C /* def_idx: 6 */ {
+B0:
+	0: MoveLoc[3](c: C)
+	1: Ret
 }
 }
