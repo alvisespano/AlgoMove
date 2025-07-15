@@ -43,7 +43,6 @@ type M.Struct with
 
 
 type M.Module with
-
     member P.struct_by_name id = P.structs.[int <| P.index_of_struct id]
 
     member P.index_of_struct id = List.findIndex (fun (s : M.Struct) -> s.id = id) P.structs |> byte
@@ -51,7 +50,7 @@ type M.Module with
     member P.key_of_ty (τ : M.ty) =
         let id = τ.raw
         let i = P.index_of_struct id
-        hash(P.name, i) &&& 0xff |> byte
+        hash (P.name, i) &&& 0xff |> byte
 
     member P.instantiate_struct τ =
             match τ with
@@ -89,6 +88,7 @@ type M.Fun with
         |> function [||] -> None 
                   | l    -> Some (uint (Array.max l))
 
+    member F.is_native = List.contains M.qual.Native F.quals
 
 // context and misc stuff
 //
@@ -112,14 +112,6 @@ let instr_label mid fid i = lazy (sublabel_name mid fid (string i))
 
 let bytes_of_string = Seq.map byte >> Seq.toArray
 
-//type type_tag = { is_integral: bool; name: string }
-//with
-//    static member of_ty (P : M.Module) (τ : M.ty) = { is_integral = τ.is_integral; name = sprintf "%O" τ }
-
-//    member self.as_bytes = sprintf "%1d%O" (if self.is_integral then 1 else 0) self.name |> bytes_of_string
-
-
-
 
 // transpiler functions
 //
@@ -140,7 +132,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
             match qid with
             | Some mid -> ImportCache.[mid] |> fst
             | None     -> ctx.P
-        if List.exists (fun (F : M.Fun) -> F.name = fid && List.contains M.qual.Native F.quals) m.funs
+        if List.exists (fun (F : M.Fun) -> F.name = fid && F.is_native) m.funs
         then Native (m.name, fid)
         else NonNative (m.name, fid)
             
@@ -149,6 +141,33 @@ let emit_opcode (ctx : context) (op : M.opcode) =
             let i = List.findIndex ((=) s) ctx.ty_params
             Some [ T.FrameDig (-(List.length ctx.ty_params - 1 - i) - 1) ]
         | _ -> None
+
+    let emit_type_witness =
+        let PushString s = T.PushBytes (s |> bytes_of_string)
+        let rec R pp σ =
+            let R σ = R (fun _ -> PushString) σ
+            [
+                match σ with
+                | TyParam instrs     -> yield! instrs
+                | M.ty.Cons (id, []) -> yield pp 0 (sprintf "%s" id)
+                | TyIntegral         -> yield pp 1 (sprintf "%O" σ)
+  
+                | M.ty.Cons (id, τ1 :: τs) ->
+                    yield pp 0 (sprintf "%s<" id)
+                    yield! R τ1
+                    yield T.Concat
+                    for τ in τs do
+                        yield PushString ","
+                        yield T.Concat
+                        yield! R τ
+                        yield T.Concat
+                    yield PushString ">"
+                    yield T.Concat
+ 
+                | _ -> unexpected_case __SOURCE_FILE__ __LINE__ (sprintf "emitting type witness of %O" σ)
+            ]
+        R (fun prefix s -> PushString <| sprintf "%d%s" prefix s)
+        
 
     let emit_call_native mid fid (ty_args : M.ty list) =
         let (|Regex|_|) pattern input =
@@ -162,13 +181,10 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                     match fid with 
                     | "address_of_signer"
                     | "bytes_of_address" -> ()
-                    | "name_of" ->
-                        match ty_args.[0] with  // TODO check this works or fix it
-                        | TyParam instrs -> 
-                            yield! instrs
-                            yield T.Extract (1u, 0u)    // name part
 
-                        | τ -> yield T.PushBytes (τ.ToString () |> bytes_of_string)
+                    | "name_of" -> 
+                        yield! emit_type_witness ty_args.[0]
+                        yield T.Extract (1u, 0u)    // only name part
                         
                     | _ -> raise UnsupportedNative
 
@@ -204,28 +220,6 @@ let emit_opcode (ctx : context) (op : M.opcode) =
             with UnsupportedNative ->
                 Report.error "native function %s.%s is not yet supported" mid fid
                 yield T.UnsupportedNative (sprintf "%s::%s" mid fid)
-        ]
-
-    let rec emit_type_witness σ =
-        [
-            match σ with
-            | TyParam instrs     -> yield! instrs
-            | M.ty.Cons (id, []) -> yield T.PushBytes (sprintf "0%s" id |> bytes_of_string)
-            | TyIntegral         -> yield T.PushBytes (sprintf "1%O" σ |> bytes_of_string)
-  
-            | M.ty.Cons (id, τ1 :: τs) ->
-                yield T.PushBytes (sprintf "0%s<" id |> bytes_of_string)
-                yield! emit_type_witness τ1
-                yield T.Concat
-                for τ in τs do
-                    yield T.PushBytes ("," |> bytes_of_string)
-                    yield T.Concat
-                    yield! emit_type_witness τ
-                    yield T.Concat
-                yield T.PushBytes (">" |> bytes_of_string)
-                yield T.Concat
- 
-            | _ -> unexpected_case __SOURCE_FILE__ __LINE__ (sprintf "emitting type tag of %O" σ)
         ]
 
     let access_slot (i : M.index) arg local = 
@@ -310,7 +304,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                     match τ with
                     | TyParam instrs -> 
                         yield! instrs
-                        yield T.Callsub (lazy "PackTyArg")
+                        yield T.Callsub (lazy "PackTyParam")
                     | _ when τ.is_integral -> yield T.Itob               
                     | _ -> ()
                 // craft struct header: (offset, len) pairs
@@ -342,7 +336,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                 match τ with
                 | TyParam instrs -> 
                     yield! instrs
-                    yield T.Callsub (lazy "UnpackTyArg")
+                    yield T.Callsub (lazy "UnpackTyParam")
                 | _ when τ.is_integral -> yield T.Btoi
                 | _ -> ()
                 yield T.Swap
@@ -422,7 +416,7 @@ let emit_fun (P : M.Module) (F : M.Fun) =
  
             // epilogue
             yield T.Label ctx.exit_label
-            if F.ret.IsSome then yield T.FrameBury 0    // TODO tuple support
+            if F.ret.IsSome then yield T.FrameBury 0    // TODO make tuple support
             for i = int M downto N do 
                 yield T.Store (uint i)
             yield T.Retsub
@@ -500,15 +494,17 @@ let emit_program (P : M.Module) : T.program =
         for _, f in emit_module P do yield! f
         // emit only touched functions in imports
         for kv in ImportCache do
-            let mid, (_, fs) = kv.Key, kv.Value
+            let mid, (P', fs) = kv.Key, kv.Value
             for fid, f in fs do
                 if TouchedFunCache.Contains (mid, fid) then
                     yield! f
                 else 
-                    Report.debug "function %s::%s is never called and will not be emitted" mid fid
+                    let F = List.find (fun (F : M.Fun) -> F.name = fid) P'.funs
+                    if not F.is_native then
+                        Report.debug "function %s::%s is never called and will not be emitted" mid fid
     ]
 
 let generate_program (P : M.Module) : string =
     let has_dispatcher, preamble = emit_preamble P
     let main = emit_program P
-    (if has_dispatcher then TealLib.header_dispatcher else TealLib.header_no_dispatcher) + T.pretty_program preamble + T.pretty_program main + TealLib.epilogue
+    (if has_dispatcher then RuntimeLib.header_dispatcher else RuntimeLib.header_no_dispatcher) + T.pretty_program preamble + T.pretty_program main + RuntimeLib.epilogue

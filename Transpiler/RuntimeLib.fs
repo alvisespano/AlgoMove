@@ -1,4 +1,4 @@
-﻿module AlgoMove.Transpiler.TealLib
+﻿module AlgoMove.Transpiler.RuntimeLib
 
 let header_dispatcher = """
 #pragma version 11
@@ -18,7 +18,7 @@ let header_no_dispatcher = """
 // TODO fix ReadRef and WriteRef with new pointer format 
 let epilogue = """
 //
-// ---- AlgoMove TealLib ----
+// ---- AlgoMove Runtime Library ----
 //
 
 PackField:	// assumes: 255 = counter, 254 = #field - 1
@@ -46,29 +46,29 @@ PackField:	// assumes: 255 = counter, 254 = #field - 1
 	frame_bury 0
 	retsub
 
-PackTyArg:
+PackTyParam:
 	proto 1 1
 	frame_dig -1
 	pushint 7
 	getbit
 	pushint 1
 	==
-	bz PackTyArg.exit
+	bz PackTyParam.exit
 	itob
-PackTyArg.exit:
+PackTyParam.exit:
 	frame_bury 0
 	retsub
 
-UnpackTyArg:
+UnpackTyParam:
 	proto 1 1
 	frame_dig -1
 	pushint 7
 	getbit
 	pushint 1
 	==
-	bz UnpackTyArg.exit
+	bz UnpackTyParam.exit
 	btoi
-UnpackTyArg.exit:
+UnpackTyParam.exit:
 	frame_bury 0
 	retsub
 
@@ -123,7 +123,7 @@ ReadRef.setup_path:
 	store 254		// save path size used as counter
 
 // stack: path, data
-consume_path:
+ReadRef.consume_path:
 	load 254
 	bz ReadRef.consume_path_quit
 

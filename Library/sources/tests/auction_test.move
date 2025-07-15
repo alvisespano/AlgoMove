@@ -2,6 +2,7 @@ module algomove::auction_test {
 
 	use algomove::auction_with_item as au;
 	use algomove::asset::{Self};
+	use algomove::utils;
 
 	struct EUR {}
 
@@ -13,6 +14,11 @@ module algomove::auction_test {
 	struct Prize has key {
 		car: Car
 	}
+
+	struct Pair<A, B> {
+        fst: A,
+        snd: B
+    }
 
 	public entry fun start(acc: &signer) {
 		let item = Car { name: b"Golf8", power: 160 };
@@ -33,6 +39,10 @@ module algomove::auction_test {
 		};
 		let car = au::retrieve_prize<EUR, Car>(acc, auc);
 		move_to(acc, Prize { car });
+	}
+
+	public fun f<A, B>(): vector<u8> {
+		utils::name_of<Pair<A, Pair<A, B>>>()
 	}
 
 }

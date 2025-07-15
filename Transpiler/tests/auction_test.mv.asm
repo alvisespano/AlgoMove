@@ -1,5 +1,6 @@
 // Move bytecode v7
 module aaa.auction_test {
+use 0000000000000000000000000000000000000000000000000000000000000aaa::utils;
 use 0000000000000000000000000000000000000000000000000000000000000aaa::asset;
 use 0000000000000000000000000000000000000000000000000000000000000aaa::auction_with_item;
 
@@ -11,11 +12,20 @@ struct Car has store {
 struct EUR {
 	dummy_field: bool
 }
+struct Pair<A, B> {
+	fst: A,
+	snd: B
+}
 struct Prize has key {
 	car: Car
 }
 
-entry public start(acc: &signer) /* def_idx: 0 */ {
+public f<A, B>(): vector<u8> /* def_idx: 0 */ {
+B0:
+	0: Call utils::name_of<Pair<A, Pair<A, B>>>(): vector<u8>
+	1: Ret
+}
+entry public start(acc: &signer) /* def_idx: 1 */ {
 L1:	item: Car
 L2:	base: Asset<EUR>
 B0:
@@ -33,7 +43,7 @@ B0:
 	11: Call auction_with_item::start_auction<EUR, Car>(&signer, Asset<EUR>, Car)
 	12: Ret
 }
-entry public bidder(acc: &signer, auc: address) /* def_idx: 1 */ {
+entry public bidder(acc: &signer, auc: address) /* def_idx: 2 */ {
 L2:	amt: u64
 L3:	a: Asset<EUR>
 L4:	car: Car
@@ -66,11 +76,11 @@ B3:
 	22: StLoc[4](car: Car)
 	23: MoveLoc[0](acc: &signer)
 	24: MoveLoc[4](car: Car)
-	25: Pack[2](Prize)
-	26: MoveTo[2](Prize)
+	25: Pack[3](Prize)
+	26: MoveTo[3](Prize)
 	27: Ret
 }
-entry public finalize(acc: &signer) /* def_idx: 2 */ {
+entry public finalize(acc: &signer) /* def_idx: 3 */ {
 B0:
 	0: MoveLoc[0](acc: &signer)
 	1: Call auction_with_item::finalize_auction<EUR, Car>(&signer)

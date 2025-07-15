@@ -28,7 +28,7 @@
 	  </Compile>
     <Compile Include="Report.fs" />
     <Compile Include="Parsing.fs" />
-    <Compile Include="TealLib.fs" />
+    <Compile Include="RuntimeLib.fs" />
     <Compile Include="Gen.fs" />
 	  <Compile Include="Main.fs" />
   </ItemGroup>
