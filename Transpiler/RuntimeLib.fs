@@ -15,7 +15,7 @@ let header_no_dispatcher = """
 
 """
 
-// TODO fix ReadRef and WriteRef with new pointer format 
+// TODO fix WriteRef with new pointer format 
 let epilogue = """
 //
 // ---- AlgoMove Runtime Library ----
@@ -73,30 +73,21 @@ UnpackTyParam.exit:
 	retsub
 
 ReadRef:
-	// preamble
 	proto 1 1	
-	// slot 255 used: reference (arg1)
-	// slot 254 used: counter
-	// slot 253 used: deserialize flag
 	frame_dig -1
-	store 255		 // save arg1
+	store 255		// 255 = whole reference (arg1)
 
-	// clear used slots
-	pushint 0		 
-	store 253
-
-	// switch
 	load 255
-	extract 0 1	 // get kind of ref
+	extract 0 1		// get kind of ref
 	btoi
 	switch ReadRef.k0 ReadRef.k1
 
 // kind 0x00: local
 ReadRef.k0: 
 	load 255
-	extract 1 1	// scratch space slot
+	extract 1 1		// get scratch space slot 
 	btoi	
-	loads				// push dereferenced value
+	loads			// read dereferenced data
 	load 255
 	pushint 2		// path offset
 	b ReadRef.setup_path
@@ -107,58 +98,69 @@ ReadRef.k1:
 	dup
 	extract 2 32	// address
 	swap
-	extract 1 1	 // key = struct number
-	app_local_get // push dereferenced value
+	extract 1 1		// key 
+	app_local_get	// read dereferenced data
 	load 255
 	pushint 34		// path offset
 
-// stack: offset, whole reference, data 
+// stack: offset, whole reference, dereferenced data 
 ReadRef.setup_path:
-	pushint 0		// till end of array
-	extract3		 // push path part
-	dup				 
-	len
-	pushint 4
-	/						// path size = array len / 4
-	store 254		// save path size used as counter
+	pushint 0
+	extract3
+	store 252		// 252 = path part
+	len				// path size = array len (1 byte per field)
+	store 254		// 254 = path size used as counter
+	store 251		// 251 = dereferenced data
 
-// stack: path, data
+// stack: []
 ReadRef.consume_path:
 	load 254
 	bz ReadRef.consume_path_quit
 
-	dupn 2					
-	cover 3					// stack: path, path, data, path
-	extract 0 2			// extract offset (2 bytes)
-	dup
-	store 253				// save offset highest byte for later
-	pushbytes 0x7fff // clear bit 15
-	b&
-	btoi						 // convert offset into uint64
+	load 252
+	extract 0 1				// extract field index
+    pushint 4
+	*
+	load 251
 	swap
-	pushint 2				// offset of length 
-	extract_uint16	 // extract length (2 bytes) as uint64
-	extract3				 // extract field from data
-	swap
-	extract 4 0			// extract rest of path
+	pushint 4
+    extract3				// extract (offset, len) from data header
 
-	// decrement counter
+	dup
+	extract 0 2
+	dup
+	store 253				// 253 = offset as []byte without clearing bit 15 (saved for later)
+	pushbytes 0x7fff		// clear bit 15
+	b&
+	btoi					
+	store 249				// 249 = offset as uint64
+
+	pushint 2
+	extract_uint16
+	store 248				// 248 = len
+	
+	load 251
+	load 249
+	load 248
+	extract3				
+	dup
+	store 251				// 251 = sliced data
+
 	load 254
 	pushint 1
 	-
 	store 254
 	b ReadRef.consume_path
 ReadRef.consume_path_quit:
-	pop							// discard path, leave data on top
 
 // stack: data
 ReadRef.deserialize:
-	load 253				 // recover offset as 2 bytes
-	pushbytes 0x8000 // mask bit 15
+	load 253				
+	pushbytes 0x8000		// mask bit 15
 	b&
 	bz ReadRef.exit
-	btoi						 // deserialize if bit 15 is set
-
+	load 251
+	btoi					// deserialize if bit 15 is set
 ReadRef.exit:
 	frame_bury 0
 	retsub
@@ -172,33 +174,26 @@ WriteRef:
 	// slot 252 used: new value (arg2)
 	// slot 251 used: offset accumulator
 	// slot 250 used: kind of ref
-	frame_dig -1
-	store 255		 // save arg1
 	frame_dig -2
-	store 252		 // save arg2
+	store 255		 // 255 = whole reference (arg1)
+	frame_dig -1
+	store 252		 // 252 = right value (arg2)
 
-	// clear used slots
-	pushint 0		 
-	store 253
-	pushint 0
-	store 251
-
-	// switch
 	load 255
-	extract 0 1	 // get kind of ref
+	extract 0 1		// get kind of ref
 	btoi
 	dup
-	store 250
+	store 250		// 250 = kind of ref
 	switch WriteRef.k0 WriteRef.k1
 
 // kind 0x00: local
 WriteRef.k0: 
-	load 255		 // load reference
-	extract 1 1	// scratch space slot
-	btoi				 // index byte becomes uint64
-	loads				// push dereferenced value
+	load 255		 
+	extract 1 1			// get scratch space slot
+	btoi				// index byte becomes uint64
+	loads				// read dereferenced value
 	load 255
-	pushint 2		// path offset
+	pushint 2			// path offset
 	b WriteRef.setup_path
 
 // kind 0x01: global
@@ -212,7 +207,7 @@ WriteRef.k1:
 	load 255
 	pushint 34		// path offset
 
-// stack: offset, whole reference, data 
+// stack: offset, whole reference, dereferenced data 
 WriteRef.setup_path:
 	pushint 0		// till end of array
 	extract3		 // push path part
