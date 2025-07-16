@@ -308,9 +308,8 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                     | _ when τ.is_integral -> yield T.Itob               
                     | _ -> ()
                 // craft struct header: (offset, len) pairs
-                // TODO offset must be calculated from the beginning of the header
-                yield T.PushInt 0UL
-                yield T.Store 255u
+                yield T.PushInt (uint64 <| N * 4u)
+                yield T.Store 255u                      // 255 = offset accumulator starting from header size
                 yield T.PushInt (uint64 (N - 1u))
                 yield T.Store 254u
                 let l = fresh_label ()

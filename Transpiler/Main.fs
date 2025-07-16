@@ -8,7 +8,7 @@ open System.IO
 let main argv =
     let r =
         if argv.Length < 1 then
-            printfn "Usage: algomovetranspiler <filename>"     
+            printfn "Usage: algomovetranspiler <filename>"
             0
         else
             let input = argv.[0]

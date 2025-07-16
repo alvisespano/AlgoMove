@@ -15,7 +15,6 @@ let header_no_dispatcher = """
 
 """
 
-// TODO fix WriteRef with new pointer format 
 let epilogue = """
 //
 // ---- AlgoMove Runtime Library ----
