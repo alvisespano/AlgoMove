@@ -63,7 +63,6 @@ module deploy_address::struct_has_key {
 		let s3 = Nested2<sm::A> { a: sma, b: 888 };
 		move_to(account, s2);
 		move_to(account, s3);
-		move_to(account, sma);
 	}
 
 	public fun borrow1(account: address ): u64 acquires Simple {

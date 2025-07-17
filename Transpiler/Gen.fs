@@ -394,6 +394,11 @@ let emit_fun (P : M.Module) (F : M.Fun) =
     F.name, [
             let N = F.paramss.Length
             let TN = F.ty_params.Length
+            let RN =
+                match F.ret with
+                | Some (M.ty.Tuple τs) -> List.length τs
+                | None                 -> 0
+                | _                    -> 1
             let ctx = {
                     exit_label = exit_label P.name F.name
                     labels = [| for i = 0 to Array.length F.body - 1 do yield instr_label P.name F.name i |]
@@ -403,7 +408,7 @@ let emit_fun (P : M.Module) (F : M.Fun) =
                 }
             // preamble
             yield T.Label (solid_label P.name F.name)
-            yield T.Proto (uint (N + TN), if F.ret.IsNone then 0u else 1u)
+            yield T.Proto (uint (N + TN), uint RN)
             let M = 
                 match F.max_local_index with
                 | None -> -1
@@ -416,7 +421,8 @@ let emit_fun (P : M.Module) (F : M.Fun) =
  
             // epilogue
             yield T.Label ctx.exit_label
-            if F.ret.IsSome then yield T.FrameBury 0    // TODO make tuple support
+            for i = RN - 1 downto 0 do
+                yield T.FrameBury i
             for i = int M downto N do 
                 yield T.Store (uint i)
             yield T.Retsub
