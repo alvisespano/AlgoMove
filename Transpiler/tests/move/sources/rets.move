@@ -20,7 +20,7 @@ module deploy_address::rets {
     public entry fun main(acc: &signer) {
         let (x, y, MyStruct { a, b }) = triple(11, true);
         if (y && b) {
-            x = a;
+            x = a + x;
         }
     }
 

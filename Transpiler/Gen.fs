@@ -289,6 +289,7 @@ let emit_opcode (ctx : context) (op : M.opcode) =
         | M.FreezeRef -> ()
 
         | M.LdConst ((M.ty.Address | M.ty.Cons ("vector", [M.ty.U8])), nums) ->
+            // TODO vector literals have an extra element at the beginning expressing length
             yield T.PushBytes (Array.ofList <| List.map byte nums)
 
         | M.LdConst (ty, nums) ->
@@ -468,7 +469,7 @@ let emit_preamble (P : M.Module) =
                 yield T.Len
                 yield T.PushInt 1UL
                 yield T.Swap
-                yield T.Extract3 
+                yield T.Extract3
                 yield T.Store 0u
                 // dispatch function
                 yield T.Txna ("ApplicationArgs", 0u)
