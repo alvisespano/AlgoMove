@@ -103,9 +103,17 @@ and tokenize = parse
 	| "BrFalse"		{ BRFALSE }
 	| "Ret"			{ RET }
 	
+	| "VecLen"		{ VECLEN }
+	| "VecPack"		{ VECPACK }
+	| "VecUnpack"	{ VECUNPACK }
+	| "VecPushBack"	{ VECPUSHBACK }
+	| "VecPopBack"	{ VECPOPBACK }
+
 	| mut "BorrowField" generic		{ BORROWFIELD }
 	| mut "BorrowGlobal" generic	{ BORROWGLOBAL } 
 	| mut "BorrowLoc" generic		{ BORROWLOC } 
+	| "Vec" mut "Borrow" generic	{ VECBORROW } 
+
 	| "Pack" generic				{ PACK }	
 	| "Unpack" generic				{ UNPACK }
 	| "MoveTo" generic				{ MOVETO }

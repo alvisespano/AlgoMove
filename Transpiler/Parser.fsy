@@ -25,7 +25,8 @@ let parse_error_rich = Some (fun ctx -> raise (ParseErrorContextException ctx))
        ADD SUB MUL DIV MOD EQ NEQ LT LE GT GE BOR BAND OR AND XOR NOT SHL SHR POP ABORT
        READREF WRITEREF FREEZEREF 
        RET 
-       BORROWLOC BORROWFIELD BORROWGLOBAL 
+       BORROWLOC BORROWFIELD BORROWGLOBAL VECBORROW  
+       VECLEN VECPACK VECUNPACK VECPUSHBACK VECPOPBACK
        PACK UNPACK EXISTS MOVETO MOVEFROM
 %token EOF
 
@@ -197,8 +198,9 @@ opcode:
   | opcodes_index SQBRA index SQKET BRA ID COLON ty KET     { $1 $3 }
   | opcodes_label BRA label KET                             { $1 $3 }
   | opcode_type SQBRA index SQKET BRA ty KET                { $1 $6 }
+  | opcode_vector                                           { $1 }
 
-  | BORROWFIELD SQBRA index SQKET BRA ID DOT ID COLON ty KET   { BorrowField ($6, $8, $10) }
+  | BORROWFIELD SQBRA index SQKET BRA ID DOT ID COLON ty KET    { BorrowField ($6, $8, $10) }
 
   | CALL qid BRA argtys KET return_ty                       { Call ($2, []) }
   | CALL qid ABRA ty_args AKET BRA argtys KET return_ty     { Call ($2, $4) }
@@ -275,4 +277,15 @@ opcodes_no_imm:
   | CASTU16                                       { CastU16 }
   | CASTU32                                       { CastU32 }
   | CASTU64                                       { CastU64 }
+
+// vector instructions have a different syntactic format. Nobody knows why.
+opcode_vector:
+    VECLEN BRA index KET                          { VecLen } 
+  | VECPUSHBACK BRA index KET                     { VecPushBack }
+  | VECPOPBACK BRA index KET                      { VecPopBack }
+  | VECPACK BRA index COMMA index KET             { VecPack }
+  | VECUNPACK BRA index COMMA index KET           { VecUnpack }
+  | VECBORROW BRA index KET                       { VecBorrow }                              
+
+
   

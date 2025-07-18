@@ -271,6 +271,9 @@ let emit_opcode (ctx : context) (op : M.opcode) =
         | M.CastU32 
         | M.CastU64 -> ()
 
+        // TODO support vector instructions
+            
+
         | M.Br (None, l) -> yield branch T.B l
         | M.Br (Some true, l) -> yield branch T.Bnz l
         | M.Br (Some false, l) -> yield branch T.Bz l

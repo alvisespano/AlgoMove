@@ -84,6 +84,12 @@ type token =
   | BORROWLOC
   | BORROWFIELD
   | BORROWGLOBAL
+  | VECBORROW
+  | VECLEN
+  | VECPACK
+  | VECUNPACK
+  | VECPUSHBACK
+  | VECPOPBACK
   | PACK
   | UNPACK
   | EXISTS
@@ -175,6 +181,12 @@ type tokenId =
     | TOKEN_BORROWLOC
     | TOKEN_BORROWFIELD
     | TOKEN_BORROWGLOBAL
+    | TOKEN_VECBORROW
+    | TOKEN_VECLEN
+    | TOKEN_VECPACK
+    | TOKEN_VECUNPACK
+    | TOKEN_VECPUSHBACK
+    | TOKEN_VECPOPBACK
     | TOKEN_PACK
     | TOKEN_UNPACK
     | TOKEN_EXISTS
@@ -226,6 +238,7 @@ type nonTerminalId =
     | NONTERM_opcodes_index
     | NONTERM_opcodes_label
     | NONTERM_opcodes_no_imm
+    | NONTERM_opcode_vector
 /// This function maps tokens to integer indexes
 val tagOfToken: token -> int
 

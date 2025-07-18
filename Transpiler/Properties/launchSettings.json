@@ -2,7 +2,7 @@
   "profiles": {
     "Transpiler": {
       "commandName": "Project",
-      "commandLineArgs": "tests/rets.mv.asm",
+      "commandLineArgs": "tests/vectors.mv.asm",
       "workingDirectory": "$(ProjectDir)"
     }
   }

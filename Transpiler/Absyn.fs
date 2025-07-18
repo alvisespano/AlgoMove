@@ -101,6 +101,12 @@ module Move =
         | Exists of ty
         | MoveTo of ty
         | MoveFrom of ty
+        | VecBorrow
+        | VecLen
+        | VecPack
+        | VecUnpack
+        | VecPushBack
+        | VecPopBack
 
     type ty_param = id
 
