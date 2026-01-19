@@ -1,4 +1,4 @@
-module algomove::auction_monomorphic {
+module algomove::auction_mono {
 
     use algomove::asset::{ Self, Asset };
     use algomove::utils;
@@ -9,7 +9,7 @@ module algomove::auction_monomorphic {
         expired: bool
     }
 
-    struct Bid<Dollar> has key {
+    struct Bid has key {
         assets: Asset<Dollar>
     }
 
@@ -26,7 +26,7 @@ module algomove::auction_monomorphic {
 
     public fun bid(acc: &signer, auctioneer: address, assets: Asset<Dollar>) acquires Auction, Bid {
         let auction = borrow_global_mut<Auction>(auctioneer);
-        let Bid { assets: top_bid } = move_from<Bid<Dollar>>(auction.top_bidder);
+        let Bid { assets: top_bid } = move_from<Bid>(auction.top_bidder);
         assert!(!auction.expired, 1);
         assert!(asset::value(&assets) > asset::value(&top_bid), 2);
         asset::deposit(auction.top_bidder, top_bid);
@@ -39,7 +39,7 @@ module algomove::auction_monomorphic {
         let auction = borrow_global_mut<Auction>(auctioneer);
         assert!(auctioneer == auction.auctioneer, 3);
         auction.expired = true;
-        let Bid { assets: top_bid } = move_from<Bid<Dollar>>(auction.top_bidder);
+        let Bid { assets: top_bid } = move_from<Bid>(auction.top_bidder);
         asset::deposit(auctioneer, top_bid);
     }
 

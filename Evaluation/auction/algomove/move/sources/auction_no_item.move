@@ -1,4 +1,4 @@
-module algomove::auction {
+module algomove::auction_no_item {
 
     use algomove::asset::{ Self, Asset };
     use algomove::utils;

@@ -1,0 +1,137 @@
+// Bytecode version v9
+module 0xaaa::auction_no_item
+use 0xaaa::asset
+use 0xaaa::utils
+struct Auction has key
+  auctioneer: address
+  top_bidder: address
+  expired: bool
+
+struct Bid<phantom T0> has key
+  assets: asset::Asset<T0>
+
+// Function definition at index 0
+#[persistent] public fun bid<T0>(l0: &signer, l1: address, l2: asset::Asset<T0>) acquires Auction, Bid
+    local l3: &mut Auction
+    local l4: asset::Asset<T0>
+    move_loc l1
+    mut_borrow_global Auction
+    st_loc l3
+    copy_loc l3
+    borrow_field Auction, top_bidder
+    // @5
+    read_ref
+    move_from Bid<T0>
+    unpack Bid<T0>
+    st_loc l4
+    copy_loc l3
+    // @10
+    borrow_field Auction, expired
+    read_ref
+    br_true l0
+    borrow_loc l2
+    call asset::value<T0>
+    // @15
+    borrow_loc l4
+    call asset::value<T0>
+    gt
+    br_false l1
+    copy_loc l3
+    // @20
+    borrow_field Auction, top_bidder
+    read_ref
+    move_loc l4
+    call asset::deposit<T0>
+    copy_loc l0
+    // @25
+    call utils::address_of_signer
+    move_loc l3
+    mut_borrow_field Auction, top_bidder
+    write_ref
+    move_loc l0
+    // @30
+    move_loc l2
+    pack Bid<T0>
+    move_to Bid<T0>
+    ret
+l1: move_loc l0
+    // @35
+    pop
+    move_loc l3
+    pop
+    ld_u64 2
+    abort
+    // @40
+l0: move_loc l0
+    pop
+    move_loc l3
+    pop
+    ld_u64 1
+    // @45
+    abort
+
+// Function definition at index 1
+#[persistent] public fun finalize_auction<T0>(l0: &signer) acquires Auction, Bid
+    local l1: address
+    local l2: &mut Auction
+    local l3: asset::Asset<T0>
+    move_loc l0
+    call utils::address_of_signer
+    st_loc l1
+    copy_loc l1
+    mut_borrow_global Auction
+    // @5
+    st_loc l2
+    copy_loc l1
+    copy_loc l2
+    borrow_field Auction, auctioneer
+    read_ref
+    // @10
+    eq
+    br_false l0
+    ld_true
+    copy_loc l2
+    mut_borrow_field Auction, expired
+    // @15
+    write_ref
+    move_loc l2
+    borrow_field Auction, top_bidder
+    read_ref
+    move_from Bid<T0>
+    // @20
+    unpack Bid<T0>
+    st_loc l3
+    move_loc l1
+    move_loc l3
+    call asset::deposit<T0>
+    // @25
+    ret
+l0: move_loc l2
+    pop
+    ld_u64 3
+    abort
+
+// Function definition at index 2
+#[persistent] public fun start_auction<T0>(l0: &signer, l1: asset::Asset<T0>)
+    local l2: address
+    local l3: Auction
+    copy_loc l0
+    call utils::address_of_signer
+    st_loc l2
+    copy_loc l2
+    move_loc l2
+    // @5
+    ld_false
+    pack Auction
+    st_loc l3
+    copy_loc l0
+    move_loc l3
+    // @10
+    move_to Auction
+    move_loc l0
+    move_loc l1
+    pack Bid<T0>
+    move_to Bid<T0>
+    // @15
+    ret
+
