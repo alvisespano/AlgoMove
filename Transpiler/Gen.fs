@@ -410,11 +410,11 @@ let emit_fun (P : M.Module) (F : M.Fun) =
             // preamble
             yield T.Label (solid_label P.name F.name)
             yield T.Proto (uint (N + TN), uint RN)
-            let M = 
+            let mid = 
                 match F.max_local_index with
                 | None -> -1
-                | Some M -> max (int M) (N - 1)
-            for i = N to M do 
+                | Some mid -> max (int mid) (N - 1)
+            for i = N to mid do 
                 yield T.Load (uint i)
             
             // body            
@@ -424,31 +424,31 @@ let emit_fun (P : M.Module) (F : M.Fun) =
             yield T.Label ctx.exit_label
             for i = RN - 1 downto 0 do
                 yield T.FrameBury i
-            for i = int M downto N do 
+            for i = int mid downto N do 
                 yield T.Store (uint i)
             yield T.Retsub
         ]
 
 
-let rec emit_module (P : M.Module) =           
+let rec emit_module paths (P : M.Module) =           
     // process imports BEFORE
     for qid in P.imports do
-        import_module qid
+        import_module paths qid
     [
         // functions
         for F in P.funs do
             yield emit_fun P F
     ]
 
-and import_module (_, id) =
+and import_module paths (_, id) =
     if not (ImportCache.ContainsKey id) then
         Report.info "importing disassembled module '%s'..." id
         let filename = sprintf "%s.mv.asm" id
         try
-            let P = Parsing.load_and_parse_module filename
-            ImportCache.[id] <- P, emit_module P
+            let P = Parsing.load_and_parse_module paths filename
+            ImportCache.[id] <- P, emit_module paths P
         with :? System.IO.FileNotFoundException as e ->
-            Report.error "disassembled import file not found: %s.\nPlease disassemble all dependencies and put them in the same folder with the main disassembled module." filename
+            Report.error "disassembled import file not found: %s\nPlease disassemble all dependencies and put them in the same folder with the main disassembled module or use the -I option in the CLI." filename
 
 let (|Signer|_|) (ty : M.ty) =
     match ty with
@@ -495,10 +495,10 @@ let emit_preamble (P : M.Module) =
                     yield T.Return
               ]
 
-let emit_program (P : M.Module) : T.program =
+let emit_program paths (P : M.Module) : T.program =
     [
         // emit entire main module
-        for _, f in emit_module P do yield! f
+        for _, f in emit_module paths P do yield! f
         // emit only touched functions in imports
         for kv in ImportCache do
             let mid, (P', fs) = kv.Key, kv.Value
@@ -511,7 +511,7 @@ let emit_program (P : M.Module) : T.program =
                         Report.debug "function %s::%s is never called and will not be emitted" mid fid
     ]
 
-let generate_program (P : M.Module) : string =
+let generate_program paths (P : M.Module) : string =
     let has_dispatcher, preamble = emit_preamble P
-    let main = emit_program P
+    let main = emit_program paths P
     (if has_dispatcher then RuntimeLib.header_dispatcher else RuntimeLib.header_no_dispatcher) + T.pretty_program preamble + T.pretty_program main + RuntimeLib.epilogue
