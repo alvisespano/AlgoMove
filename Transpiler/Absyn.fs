@@ -120,6 +120,7 @@ module Teal =
         | Label of label
         //| UnsupportedOpcode of Move.opcode
         | UnsupportedNative of string
+        | Comment of string
 
         // Stack manipulation
         | PushInt of uint64
@@ -224,6 +225,7 @@ module Teal =
         | Label l -> if l.IsValueCreated then sprintf "%s:" l.Value else ""
         //| UnsupportedOpcode mop -> sprintf "UNSUPPORTED_OPCODE[%A]" mop
         | UnsupportedNative s -> sprintf "UNSUPPORTED_NATIVE[%s]" s
+        | Comment s -> sprintf "\n// %s" s
         | PushInt n -> sprintf "pushint %d" n
         | PushBytes b -> sprintf "pushbytes 0x%s\t// \"%s\"" (System.BitConverter.ToString(b).Replace("-", "")) (Text.Encoding.UTF8.GetString(b))
         | Pop -> "pop"
@@ -302,6 +304,16 @@ module Teal =
 
     let pretty_program (prog: program) =
         (List.map (fun (op : opcode) -> sprintf "%s%s" (if op.IsLabel then "" else "\t") (pretty_opcode op)) prog |> List.filter (fun s -> s <> "") |> String.concat "\n") + "\n"
+
+
+
+    // helper: printable check + display function
+    let private isPrintableAscii (b: byte) = b >= 0x20uy && b <= 0x7Euy
+
+    let private bytesToDisplay (b: byte[]) =
+        if isNull b || b.Length = 0 then ""
+        elif Array.forall isPrintableAscii b then System.Text.Encoding.UTF8.GetString(b)
+        else b |> Array.map (fun x -> sprintf "\\x%02X" x) |> String.concat ""
 
 
 

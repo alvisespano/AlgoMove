@@ -49,7 +49,7 @@ module algomove::transaction {
 
 	public fun asset_transfer(sender: address, id: u64, amount: u64, receiver: address) {
 		init_asset_transfer(sender, id, receiver);
-		op::itxn_field_AssetSender(@0x0);	// address 0 when normal transfer between senderounts (see Algorand doc) 
+		op::itxn_field_AssetSender(@0x0);	// address 0 when normal transfer between account and no clawback is required
 		op::itxn_field_AssetAmount(amount);
 		op::itxn_submit();
 	}

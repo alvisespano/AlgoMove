@@ -463,6 +463,7 @@ let emit_preamble (P : M.Module) =
     else
         Report.info "found %d entry functions in module '%s'" funs.Length P.name
         true, [
+                yield T.Comment "---- Dispatcher ----"
                 yield T.Label (solid_label "startup" "dispatcher")
                 // shorten ApplicationArgs byte array by removing the head
                 yield T.Txn "ApplicationArgs"
@@ -498,10 +499,12 @@ let emit_preamble (P : M.Module) =
 let emit_program paths (P : M.Module) : T.program =
     [
         // emit entire main module
+        yield T.Comment (sprintf "---- Module: %s ----" P.name)
         for _, f in emit_module paths P do yield! f
         // emit only touched functions in imports
         for kv in ImportCache do
             let mid, (P', fs) = kv.Key, kv.Value
+            yield T.Comment (sprintf "---- Imported Module: %s ----" P'.name)
             for fid, f in fs do
                 if TouchedFunCache.Contains (mid, fid) then
                     yield! f

@@ -43,4 +43,26 @@ module algomove::auction_mono {
         asset::deposit(auctioneer, top_bid);
     }
 
+    // test main
+    //
+
+	public entry fun start(acc: &signer) {
+		let base = asset::withdraw<Dollar>(acc, 20000);
+        start_auction(acc, base);
+    }
+
+	public entry fun finalize(acc: &signer) {
+		finalize_auction(acc)
+	}
+
+	public entry fun bidder(acc: &signer, auc: address) {
+		let amt = 20001;	
+		while (amt < 30000) {
+			let a = asset::withdraw<Dollar>(acc, amt);
+			bid(acc, auc, a);
+			amt = amt + 1000;
+		};
+	}
+
+
 }
