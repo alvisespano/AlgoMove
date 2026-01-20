@@ -33,7 +33,7 @@ let main argv =
             let mprg = Parsing.load_and_parse_module paths input
             let tprg = Gen.generate_program paths mprg
             let output = Path.ChangeExtension (input, ".teal")
-            Report.info "saving output TEAL file: %s" output
+            Report.info "saving output TEAL file '%s'" output
             File.WriteAllText (output, tprg)
             0
         with
