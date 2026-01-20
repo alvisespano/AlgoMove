@@ -30,7 +30,7 @@ class AuctionState:
         descr="Bid of an actor",
     )
 
-app = beaker.Application("Auction2", state=AuctionState())
+app = beaker.Application("Auction", state=AuctionState())
 
 @app.external
 def start(
