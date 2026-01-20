@@ -1,52 +1,37 @@
 #pragma version 8
-intcblock 0 1 100000
-bytecblock 0x7374617465 0x73656c6c6572 0x686967686573745f626964 0x656e645f74696d65 0x626964 0x6f626a 0x686967686573745f626964646572
-txna ApplicationArgs 0
-pushbytes 0xcd9ad67e // "create(string,uint64)void"
-==
-bnz main_l10
-txna ApplicationArgs 0
-pushbytes 0x63602052 // "start(uint64)void"
-==
-bnz main_l9
-txna ApplicationArgs 0
-pushbytes 0xdb7fe843 // "bid(pay)void"
+intcblock 0 1
+bytecblock 0x61756374696f6e656572 0x686967686573745f626964 0x65787069726564 0x686967686573745f626964646572 0x626964
+txn NumAppArgs
+intc_0 // 0
 ==
 bnz main_l8
 txna ApplicationArgs 0
-pushbytes 0xb7355fd1 // "withdraw()void"
+pushbytes 0x99eb569e // "start(pay)void"
 ==
 bnz main_l7
 txna ApplicationArgs 0
-pushbytes 0x2c09f3a5 // "end()void"
+pushbytes 0x9948ce2e // "bid(address,pay)void"
 ==
 bnz main_l6
+txna ApplicationArgs 0
+pushbytes 0x2c09f3a5 // "end()void"
+==
+bnz main_l5
 err
+main_l5:
+txn OnCompletion
+intc_0 // NoOp
+==
+txn ApplicationID
+intc_0 // 0
+!=
+&&
+assert
+callsub endcaster_6
+intc_1 // 1
+return
+
 main_l6:
-txn OnCompletion
-intc_0 // NoOp
-==
-txn ApplicationID
-intc_0 // 0
-!=
-&&
-assert
-callsub endcaster_10
-intc_1 // 1
-return
-main_l7:
-txn OnCompletion
-intc_0 // NoOp
-==
-txn ApplicationID
-intc_0 // 0
-!=
-&&
-assert
-callsub withdrawcaster_9
-intc_1 // 1
-return
-main_l8:
 txn OnCompletion
 intc_0 // NoOp
 ==
@@ -63,10 +48,11 @@ intc_0 // 0
 &&
 ||
 assert
-callsub bidcaster_8
+callsub bidcaster_5
 intc_1 // 1
 return
-main_l9:
+
+main_l7:
 txn OnCompletion
 intc_0 // NoOp
 ==
@@ -75,206 +61,138 @@ intc_0 // 0
 !=
 &&
 assert
-callsub startcaster_7
-intc_1 // 1
-return
-main_l10:
-txn OnCompletion
-intc_0 // NoOp
-==
-txn ApplicationID
-intc_0 // 0
-==
-&&
-assert
-callsub createcaster_6
+callsub startcaster_4
 intc_1 // 1
 return
 
-// create
-create_0:
-proto 2 0
-frame_dig -1
-intc_2 // 100000
->=
-// Must provide at least MBR
-assert
+main_l8:
+txn OnCompletion
+intc_0 // NoOp
+==
+bnz main_l10
+err
+main_l10:
+txn ApplicationID
 intc_0 // 0
-bytec 5 // "obj"
-app_global_get_ex
+==
+assert
+intc_1 // 1
+return
+
+// start
+start_0:
+proto 1 0
+txn Sender
+intc_0 // 0
+bytec_0 // "auctioneer"
+app_local_get_ex
 store 1
 store 0
 load 1
 !
 assert
-bytec 5 // "obj"
-frame_dig -2
-extract 2 0
-app_global_put
-intc_0 // 0
-bytec_1 // "seller"
-app_global_get_ex
-store 3
-store 2
-load 3
-!
-assert
-bytec_1 // "seller"
 txn Sender
-app_global_put
-bytec_2 // "highest_bid"
-frame_dig -1
-app_global_put
-bytec_0 // "state"
-intc_0 // 0
-app_global_put
-retsub
-
-// start
-start_1:
-proto 1 0
-bytec_0 // "state"
-app_global_get
-intc_0 // 0
-==
-// Action must be waiting to be started
-assert
+bytec_0 // "auctioneer"
 txn Sender
-bytec_1 // "seller"
-app_global_get
-==
-// Callable only by the seller
-assert
-intc_0 // 0
-bytec_3 // "end_time"
-app_global_get_ex
-store 5
-store 4
-load 5
-!
-assert
-bytec_3 // "end_time"
-global Round
+app_local_put
+txn Sender
+bytec_1 // "highest_bid"
 frame_dig -1
-+
-app_global_put
-bytec_0 // "state"
+gtxns Amount
+app_local_put
+txn Sender
+bytec_2 // "expired"
 intc_1 // 1
-app_global_put
+app_local_put
 retsub
 
 // bid
-bid_2:
-proto 1 0
-bytec_0 // "state"
-app_global_get
+bid_1:
+proto 2 0
+frame_dig -2
+bytec_2 // "expired"
+app_local_get
 intc_1 // 1
 ==
-// Auction must be running
-assert
-global Round
-bytec_3 // "end_time"
-app_global_get
-<
-// Bids can only happen before the end of the bid period
+// Bids can only be placed before expiration
 assert
 frame_dig -1
 gtxns Amount
-bytec_2 // "highest_bid"
-app_global_get
+frame_dig -2
+bytec_1 // "highest_bid"
+app_local_get
 >
 // Bid must be higher than previous bid
 assert
-txn Sender
-txn Sender
+frame_dig -2
+bytec_3 // "highest_bidder"
+app_local_get
+frame_dig -2
+bytec_3 // "highest_bidder"
+app_local_get
 bytec 4 // "bid"
 app_local_get
-callsub payorclose_5
+callsub payorclose_3
 txn Sender
 bytec 4 // "bid"
 frame_dig -1
 gtxns Amount
 app_local_put
-bytec 6 // "highest_bidder"
 txn Sender
-app_global_put
-bytec_2 // "highest_bid"
+bytec_3 // "highest_bidder"
+txn Sender
+app_local_put
+txn Sender
+bytec_1 // "highest_bid"
 frame_dig -1
 gtxns Amount
-app_global_put
-retsub
-
-// withdraw
-withdraw_3:
-proto 0 0
-bytec_0 // "state"
-app_global_get
-intc_0 // 0
-!=
-// Auction must be running
-assert
-txn Sender
-bytec 6 // "highest_bidder"
-app_global_get
-!=
-// The highest bidder cannot withdraw their bid
-assert
-txn Sender
-txn Sender
-bytec 4 // "bid"
-app_local_get
-callsub payorclose_5
-txn Sender
-bytec 4 // "bid"
-intc_0 // 0
 app_local_put
 retsub
 
 // end
-end_4:
+end_2:
 proto 0 0
 txn Sender
-bytec_1 // "seller"
-app_global_get
+txn Sender
+bytec_0 // "auctioneer"
+app_local_get
 ==
-// Only the seller can close the contract
+// Only the auctioneer can close the contract
 assert
-bytec_0 // "state"
-app_global_get
+txn Sender
+bytec_2 // "expired"
+app_local_get
 intc_1 // 1
 ==
 // Auction must be running
 assert
-global Round
-bytec_3 // "end_time"
-app_global_get
->=
-// Bid period must be over
-assert
-bytec_1 // "seller"
-app_global_get
-bytec_2 // "highest_bid"
-app_global_get
-callsub payorclose_5
-bytec_0 // "state"
+txn Sender
+bytec_0 // "auctioneer"
+app_local_get
+txn Sender
+bytec_1 // "highest_bid"
+app_local_get
+callsub payorclose_3
+txn Sender
+bytec_2 // "expired"
 pushint 2 // 2
-app_global_put
+app_local_put
 retsub
 
 // pay_or_close
-payorclose_5:
+payorclose_3:
 proto 2 0
 frame_dig -1
 intc_0 // 0
 >
-bz payorclose_5_l4
+bz payorclose_3_l4
 global CurrentApplicationAddress
 balance
 frame_dig -1
 -
-intc_2 // 100000
+pushint 100000 // 100000
 <
-bnz payorclose_5_l3
+bnz payorclose_3_l3
 itxn_begin
 intc_1 // pay
 itxn_field TypeEnum
@@ -285,8 +203,8 @@ itxn_field Amount
 intc_0 // 0
 itxn_field Fee
 itxn_submit
-b payorclose_5_l4
-payorclose_5_l3:
+b payorclose_3_l4
+payorclose_3_l3:
 itxn_begin
 intc_1 // pay
 itxn_field TypeEnum
@@ -295,37 +213,11 @@ itxn_field CloseRemainderTo
 intc_0 // 0
 itxn_field Fee
 itxn_submit
-payorclose_5_l4:
-retsub
-
-// create_caster
-createcaster_6:
-proto 0 0
-pushbytes 0x // ""
-intc_0 // 0
-txna ApplicationArgs 1
-frame_bury 0
-txna ApplicationArgs 2
-btoi
-frame_bury 1
-frame_dig 0
-frame_dig 1
-callsub create_0
+payorclose_3_l4:
 retsub
 
 // start_caster
-startcaster_7:
-proto 0 0
-intc_0 // 0
-txna ApplicationArgs 1
-btoi
-frame_bury 0
-frame_dig 0
-callsub start_1
-retsub
-
-// bid_caster
-bidcaster_8:
+startcaster_4:
 proto 0 0
 intc_0 // 0
 txn GroupIndex
@@ -338,17 +230,32 @@ intc_1 // pay
 ==
 assert
 frame_dig 0
-callsub bid_2
+callsub start_0
 retsub
 
-// withdraw_caster
-withdrawcaster_9:
+// bid_caster
+bidcaster_5:
 proto 0 0
-callsub withdraw_3
+pushbytes 0x // ""
+intc_0 // 0
+txna ApplicationArgs 1
+frame_bury 0
+txn GroupIndex
+intc_1 // 1
+-
+frame_bury 1
+frame_dig 1
+gtxns TypeEnum
+intc_1 // pay
+==
+assert
+frame_dig 0
+frame_dig 1
+callsub bid_1
 retsub
 
 // end_caster
-endcaster_10:
+endcaster_6:
 proto 0 0
-callsub end_4
+callsub end_2
 retsub
