@@ -24,7 +24,7 @@ let load_and_parse_module paths filename =
             use rd = new IO.StreamReader (fstr)
             Report.info "parsing source file '%s'..." filename
             Some <| parse_from_TextReader rd filename (1, 1) Parser.Module Lexer.tokenize Parser.tokenTagToTokenId
-        with _ -> Report.debug "file '%s' not found in from path '%s', trying next..." filename path; None
+        with _ -> Report.debug "file '%s' not found in path '%s', trying next..." filename path; None
     match paths |> List.tryPick f with
     | Some r -> r
     | None -> raise (FileNotFoundException (sprintf "could not find source file '%s' in any of the provided paths" filename))

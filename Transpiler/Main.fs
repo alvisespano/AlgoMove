@@ -37,7 +37,7 @@ let main argv =
             try
                 let mprg = Parsing.load_and_parse_module paths input
                 let tprg = Gen.generate_program paths mprg
-                let output = remove_all_extensions input + ".teal"
+                let output = sprintf "%s/%s.teal" (Path.GetDirectoryName input) (remove_all_extensions input)
                 Report.info "saving output TEAL file '%s'" output
                 File.WriteAllText (output, tprg)
                 0

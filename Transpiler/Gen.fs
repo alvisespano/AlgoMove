@@ -448,7 +448,7 @@ and import_module paths (_, id) =
             let P = Parsing.load_and_parse_module paths filename
             ImportCache.[id] <- P, emit_module paths P
         with :? System.IO.FileNotFoundException as e ->
-            Report.error "disassembled import file not found: %s\nPlease disassemble all dependencies and put them in the same folder with the main disassembled module or use the -I option in the CLI." filename
+            Report.error "disassembled import file not found: %s\nPlease disassemble all dependencies and put them in the same folder with the main disassembled module or use the -I option in the CLI" filename
 
 let (|Signer|_|) (ty : M.ty) =
     match ty with
@@ -458,7 +458,7 @@ let (|Signer|_|) (ty : M.ty) =
 let emit_preamble (P : M.Module) =
     let funs = List.filter (fun (F : M.Fun) -> List.contains M.qual.Entry F.quals) P.funs
     if funs.Length = 0 then
-        Report.warn "no entry function found in module '%s'. Library modules include no function dispatcher in the generated TEAL preamble." P.name
+        Report.warn "no entry function found in module '%s'. Library modules include no function dispatcher in the generated TEAL preamble" P.name
         false, []
     else
         Report.info "found %d entry functions in module '%s'" funs.Length P.name
