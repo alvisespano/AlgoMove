@@ -74,7 +74,7 @@ UnpackTyParam.exit:
 
 /////////////////////////////////
 
-Deref.setup:
+Deref:
 	proto 0 0
 	load 255
 	extract 0 1		// get kind of ref
@@ -156,7 +156,7 @@ ReadRef:
 	frame_dig -1
 	store 255		// 255 = whole reference (arg1)
 
-	callsub Deref.setup
+	callsub Deref
 
 ReadRef.consume_path_loop:
 	load 250
