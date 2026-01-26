@@ -71,7 +71,6 @@ UnpackTyParam.exit:
 	frame_bury 0
 	retsub
 
-
 /////////////////////////////////
 
 Deref:
@@ -115,7 +114,6 @@ Deref.setup_path:
 	load 250		// 250 = index (loop increment)
 	retsub
 
-
 Deref.consume_path:
 	proto 0 0
 	load 252
@@ -149,7 +147,6 @@ Deref.consume_path:
 	retsub
 
 /////////////////////////////////
-
 
 ReadRef:
 	proto 1 1	
@@ -185,8 +182,7 @@ ReadRef.exit:
 	frame_bury 0
 	retsub
 
-
-
+/////////////////////////////////
 
 WriteRef:
 	proto 2 0
