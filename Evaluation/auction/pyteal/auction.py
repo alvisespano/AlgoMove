@@ -33,7 +33,7 @@ class AuctionState:
 app = beaker.Application("Auction", state=AuctionState())
 
 @app.external
-def start(
+def start_auction(
     starting_bid_: pt.abi.PaymentTransaction,
 ):
     return Seq(
@@ -68,7 +68,7 @@ def bid(
     )
 
 @app.external
-def end():
+def finalize_auction():
     return Seq(
         Assert(Txn.sender() == app.state.auctioneer[Txn.sender()],
                comment="Only the auctioneer can close the contract"),

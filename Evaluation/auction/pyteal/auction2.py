@@ -75,7 +75,7 @@ app = beaker.Application("Auction", state=AuctionState())
 # -----------------------------------------------------------------------------
 
 @app.external
-def start(
+def start_auction(
     starting_bid_: pt.abi.Transaction,
     asset_id: pt.abi.Uint64,
 ):
@@ -192,7 +192,7 @@ def bid(
 # -----------------------------------------------------------------------------
 
 @app.external
-def end():
+def finalize_auction():
     """
     Ends the auction and transfers the highest bid
     to the auctioneer.
