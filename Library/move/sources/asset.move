@@ -33,8 +33,8 @@ module algomove::asset {
 	}
 
 	public fun transfer<AssetType>(from: &signer, to: address, amount: u64) {
-        let assets = withdraw<AssetType>(from, amount);
-        deposit(to, assets);
+		let id = utils::retrieve_asset_id<AssetType>();
+		txn::asset_transfer(utils::address_of_signer(from), id, amount, to)
     }
 
 	public fun split<AssetType>(assets: Asset<AssetType>, amt: u64): (Asset<AssetType>, Asset<AssetType>) {
