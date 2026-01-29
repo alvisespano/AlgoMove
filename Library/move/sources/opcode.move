@@ -50,22 +50,13 @@ module algomove::opcode {
 
 	// local state
 
-	native public fun app_local_put<T: key>(addr: address, k: vector<u8>, data: T);
-	native public fun app_local_put_bytes(addr: address, k: vector<u8>, data: vector<u8>);
-	native public fun app_local_put_u64(addr: address, k: vector<u8>, data: u64);
-	native public fun app_local_get<T: key>(addr: address, k: vector<u8>): T;
-	native public fun app_local_get_bytes(addr: address, k: vector<u8>): vector<u8>;
-	native public fun app_local_get_u64(addr: address, k: vector<u8>): u64;
+	native public fun app_local_put<T>(addr: address, k: vector<u8>, data: T);
+	native public fun app_local_get<T>(addr: address, k: vector<u8>): T;
 
 	// global state
 
-	native public fun app_global_put<T: key>(k: vector<u8>, data: T);
-	native public fun app_global_put_bytes(k: vector<u8>, data: vector<u8>);
-	native public fun app_global_put_u64(k: vector<u8>, data: u64);
-
-	native public fun app_global_get<T: key>(k: vector<u8>): T;
-	native public fun app_global_get_bytes(k: vector<u8>): vector<u8>;
-	native public fun app_global_get_u64(k: vector<u8>): u64;
+	native public fun app_global_put<T>(k: vector<u8>, data: T);
+	native public fun app_global_get<T>(k: vector<u8>): T;
 
 	// serialization
 

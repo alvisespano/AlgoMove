@@ -190,16 +190,8 @@ let emit_opcode (ctx : context) (op : M.opcode) =
 
                 | "opcode" ->
                     match fid with
-                    | "itxn_begin" -> yield T.ITxnBegin
-                    | "itxn_submit" -> yield T.ITxnSubmit
-
-                    | Regex @"itxn_field_(\w+)" [field] -> yield T.ITxnField field
-                    | Regex @"global_(\w+)" [field] -> yield T.Global field
-                    | Regex @"txn_(\w+)" [field] -> yield T.Txn field
-                    | Regex @"txnas_(\w+)" [field] -> yield T.Txnas field
-                    | Regex @"asset_holding_get_(\w+)" [field] -> yield T.AssetHoldingGet field
-                    | Regex @"asset_params_get_(\w+)" [field] -> yield T.AssetParamsGet field
-
+                    | "itxn_begin"    -> yield T.ITxnBegin
+                    | "itxn_submit"   -> yield T.ITxnSubmit
                     | "balance"       -> yield T.Balance
                     | "min_balance"   -> yield T.MinBalance
                     | "app_local_get" -> yield T.AppLocalGet
@@ -213,12 +205,19 @@ let emit_opcode (ctx : context) (op : M.opcode) =
                     | "concat"        -> yield T.Concat
                     | "err"           -> yield T.Err
 
+                    | Regex @"^itxn_field_(\w+)" [field] -> yield T.ITxnField field
+                    | Regex @"^global_(\w+)" [field] -> yield T.Global field
+                    | Regex @"^txn_(\w+)" [field] -> yield T.Txn field
+                    | Regex @"^txnas_(\w+)" [field] -> yield T.Txnas field
+                    | Regex @"^asset_holding_get_(\w+)" [field] -> yield T.AssetHoldingGet field
+                    | Regex @"^asset_params_get_(\w+)" [field] -> yield T.AssetParamsGet field
+
                     | _ -> raise UnsupportedNative
             
                 | _ -> raise UnsupportedNative
 
             with UnsupportedNative ->
-                Report.error "native function %s.%s is not yet supported" mid fid
+                Report.error "native function %s.%s is not supported" mid fid
                 yield T.UnsupportedNative (sprintf "%s::%s" mid fid)
         ]
 

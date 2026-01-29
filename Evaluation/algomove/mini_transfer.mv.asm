@@ -1,7 +1,7 @@
 // Move bytecode v9
 module aaa.mini_transfer {
-use 0000000000000000000000000000000000000000000000000000000000000aaa::opcode;
 use 0000000000000000000000000000000000000000000000000000000000000aaa::utils;
+use 0000000000000000000000000000000000000000000000000000000000000aaa::opcode;
 
 
 struct Asset<phantom T> has store {
@@ -9,41 +9,45 @@ struct Asset<phantom T> has store {
 	amount: u64,
 	owner: address
 }
-struct EUR {
-	dummy_field: bool
-}
 
-public transfer(from: &signer, to: address, amount: u64) /* def_idx: 0 */ {
-L3:	assets: Asset<EUR>
+public transfer<T>(from: &signer, to: address, amount: u64) /* def_idx: 0 */ {
+L3:	sender: address
 B0:
-	0: MoveLoc[0](from: &signer)
-	1: MoveLoc[2](amount: u64)
-	2: Call withdraw<EUR>(&signer, u64): Asset<EUR>
-	3: StLoc[3](assets: Asset<EUR>)
-	4: MoveLoc[1](to: address)
-	5: MoveLoc[3](assets: Asset<EUR>)
-	6: Call deposit<EUR>(address, Asset<EUR>)
-	7: Ret
-}
-public deposit<T>(to: address, assets: Asset<T>) /* def_idx: 1 */ {
-L2:	amount: u64
-B0:
-	0: MoveLoc[1](assets: Asset<T>)
-	1: UnpackGeneric[0](Asset<T>)
-	2: Pop
-	3: StLoc[2](amount: u64)
+	0: Call utils::retrieve_asset_id<T>(): u64
+	1: MoveLoc[0](from: &signer)
+	2: Call utils::address_of_signer(&signer): address
+	3: StLoc[3](sender: address)
 	4: Call opcode::itxn_begin()
 	5: LdConst[0](Vector(U8): [5, 97, 120, 102, 101, 114])
 	6: Call opcode::itxn_field_Type(vector<u8>)
-	7: Call opcode::txn_Sender(): address
-	8: Call opcode::itxn_field_Sender(address)
-	9: Call opcode::itxn_field_XferAsset(u64)
-	10: MoveLoc[0](to: address)
-	11: Call opcode::itxn_field_AssetReceiver(address)
-	12: MoveLoc[2](amount: u64)
-	13: Call opcode::itxn_field_AssetAmount(u64)
+	7: Call opcode::itxn_field_XferAsset(u64)
+	8: MoveLoc[2](amount: u64)
+	9: Call opcode::itxn_field_AssetAmount(u64)
+	10: MoveLoc[3](sender: address)
+	11: Call opcode::itxn_field_Sender(address)
+	12: MoveLoc[1](to: address)
+	13: Call opcode::itxn_field_AssetReceiver(address)
 	14: Call opcode::itxn_submit()
 	15: Ret
+}
+public deposit<T>(to: address, assets: Asset<T>) /* def_idx: 1 */ {
+L2:	amount: u64
+L3:	id: u64
+B0:
+	0: MoveLoc[1](assets: Asset<T>)
+	1: UnpackGeneric[0](Asset<T>)
+	2: Call opcode::itxn_begin()
+	3: LdConst[0](Vector(U8): [5, 97, 120, 102, 101, 114])
+	4: Call opcode::itxn_field_Type(vector<u8>)
+	5: Call opcode::itxn_field_Sender(address)
+	6: StLoc[2](amount: u64)
+	7: Call opcode::itxn_field_XferAsset(u64)
+	8: MoveLoc[0](to: address)
+	9: Call opcode::itxn_field_AssetReceiver(address)
+	10: MoveLoc[2](amount: u64)
+	11: Call opcode::itxn_field_AssetAmount(u64)
+	12: Call opcode::itxn_submit()
+	13: Ret
 }
 public withdraw<T>(acc: &signer, amount: u64): Asset<T> /* def_idx: 2 */ {
 L2:	id: u64

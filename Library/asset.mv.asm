@@ -1,4 +1,4 @@
-// Move bytecode v7
+// Move bytecode v9
 module aaa.asset {
 use 0000000000000000000000000000000000000000000000000000000000000aaa::utils;
 use 0000000000000000000000000000000000000000000000000000000000000aaa::transaction;
@@ -31,39 +31,46 @@ B0:
 	6: CopyLoc[1](total: u64)
 	7: MoveLoc[2](decimals: u64)
 	8: MoveLoc[3](default_frozen: bool)
-	9: MoveLoc[6](name: vector<u8>)
+	9: CopyLoc[6](name: vector<u8>)
 	10: MoveLoc[4](short_name: vector<u8>)
 	11: Call transaction::asset_config(address, u64, u64, bool, vector<u8>, vector<u8>)
 	12: Call opcode::txn_CreatedAssetID(): u64
-	13: MoveLoc[1](total: u64)
-	14: MoveLoc[5](sender: address)
-	15: PackGeneric[0](Asset<AssetType>)
-	16: Ret
+	13: StLoc[2](decimals: u64)
+	14: MoveLoc[6](name: vector<u8>)
+	15: CopyLoc[2](decimals: u64)
+	16: Call opcode::app_global_put<u64>(vector<u8>, u64)
+	17: MoveLoc[2](decimals: u64)
+	18: MoveLoc[1](total: u64)
+	19: MoveLoc[5](sender: address)
+	20: PackGeneric[0](Asset<AssetType>)
+	21: Ret
 }
 public transfer<AssetType>(from: &signer, to: address, amount: u64) /* def_idx: 2 */ {
-L3:	assets: Asset<AssetType>
+L3:	id: u64
 B0:
-	0: MoveLoc[0](from: &signer)
-	1: MoveLoc[2](amount: u64)
-	2: Call withdraw<AssetType>(&signer, u64): Asset<AssetType>
-	3: StLoc[3](assets: Asset<AssetType>)
-	4: MoveLoc[1](to: address)
-	5: MoveLoc[3](assets: Asset<AssetType>)
-	6: Call deposit<AssetType>(address, Asset<AssetType>)
-	7: Ret
+	0: Call utils::retrieve_asset_id<AssetType>(): u64
+	1: StLoc[3](id: u64)
+	2: MoveLoc[0](from: &signer)
+	3: Call utils::address_of_signer(&signer): address
+	4: MoveLoc[3](id: u64)
+	5: MoveLoc[2](amount: u64)
+	6: MoveLoc[1](to: address)
+	7: Call transaction::asset_transfer(address, u64, u64, address)
+	8: Ret
 }
 public deposit<AssetType>(receiver: address, assets: Asset<AssetType>) /* def_idx: 3 */ {
-L2:	amount: u64
-L3:	id: u64
+L2:	owner: address
+L3:	amount: u64
+L4:	id: u64
 B0:
 	0: MoveLoc[1](assets: Asset<AssetType>)
 	1: UnpackGeneric[0](Asset<AssetType>)
-	2: Pop
-	3: StLoc[2](amount: u64)
-	4: StLoc[3](id: u64)
-	5: Call opcode::txn_Sender(): address
-	6: MoveLoc[3](id: u64)
-	7: MoveLoc[2](amount: u64)
+	2: StLoc[2](owner: address)
+	3: StLoc[3](amount: u64)
+	4: StLoc[4](id: u64)
+	5: MoveLoc[2](owner: address)
+	6: MoveLoc[4](id: u64)
+	7: MoveLoc[3](amount: u64)
 	8: MoveLoc[0](receiver: address)
 	9: Call transaction::asset_transfer(address, u64, u64, address)
 	10: Ret

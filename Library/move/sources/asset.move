@@ -15,12 +15,14 @@ module algomove::asset {
 		let sender = utils::address_of_signer(acc);
 		let name = utils::name_of<AssetType>();
 		txn::asset_config(sender, total, decimals, default_frozen, name, short_name);
-		Asset<AssetType> { id: op::txn_CreatedAssetID(), amount: total, owner: sender }
+		let id = op::txn_CreatedAssetID();
+		op::app_global_put(name, id);
+		Asset<AssetType> { id, amount: total, owner: sender }
 	}
 
 	public fun deposit<AssetType>(receiver: address, assets: Asset<AssetType>) {
-		let Asset { id, amount, owner:_ } = assets;
-		txn::asset_transfer(op::txn_Sender(), id, amount, receiver)
+		let Asset { id, amount, owner } = assets;
+		txn::asset_transfer(owner, id, amount, receiver)
 	}
 
 	public fun withdraw<AssetType>(acc: &signer, amount: u64): Asset<AssetType> {

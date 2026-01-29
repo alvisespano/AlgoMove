@@ -11,10 +11,10 @@ module algomove::mini_transfer {
 	}
 	
 	public fun deposit<T>(to: address, assets: Asset<T>) {
-		let Asset { id, amount, owner:_ } = assets;	
+		let Asset { id, amount, owner } = assets;	
 		op::itxn_begin();
 		op::itxn_field_Type(b"axfer");
-		op::itxn_field_Sender(op::txn_Sender());
+		op::itxn_field_Sender(owner);
 		op::itxn_field_XferAsset(id);
 		op::itxn_field_AssetReceiver(to);
 		op::itxn_field_AssetAmount(amount);
@@ -36,11 +36,16 @@ module algomove::mini_transfer {
 		Asset<T> { id, amount, owner: escrow }
 	}
 
-    struct EUR {}
-
-	public fun transfer(from: &signer, to: address, amount: u64) {
-        let assets = withdraw<EUR>(from, amount);
-        deposit(to, assets);
-    }
+	public fun transfer<T>(from: &signer, to: address, amount: u64) {
+		let id = utils::retrieve_asset_id<T>();
+		let sender = utils::address_of_signer(from);
+		op::itxn_begin();
+		op::itxn_field_Type(b"axfer");  
+		op::itxn_field_XferAsset(id);
+		op::itxn_field_AssetAmount(amount);
+		op::itxn_field_Sender(sender);
+		op::itxn_field_AssetReceiver(to);
+		op::itxn_submit();    
+	}
 
 }
