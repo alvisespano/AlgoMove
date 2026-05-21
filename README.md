@@ -61,3 +61,5 @@ The source file is `MyMain.move` and imports two AlgoMove modules (`algomove::as
 You will need to compile, disassemble and copy the `.mv.asm` files of the whole AlgoMove Library to the folder where you will put the disassembled `MyMain.mv.asm` file of your module.
 This because the transpiler needs all modules imported recursively in the same folder as the main module.
 
+# Contacts
+For any question or if you need support, please contact the author (Alvise Spanò) via mail at _alvise dot spano at unive dot it_.
