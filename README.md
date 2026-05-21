@@ -6,25 +6,19 @@ AlgoMove brings the Move programming model and its resource-oriented abstraction
 
 The prototype currently available in this repository is intended for experimentation and research purposes. While functional, it should be considered a research prototype rather than a production-ready toolchain.
 
-The scientific foundations, formalization, and implementation details of AlgoMove are presented in the following publications:
+## Publications
 
-```bibtex
-@inproceedings{benetollo2023algomove,
-  title={ALGOMOVE-A Move Embedding for Algorand.},
-  author={Benetollo, Lorenzo and Bugliesi, Michele and Crafa, Silvia and Rossi, Sabina and Span{\`o}, Alvise and others},
-  booktitle={Blockchain},
-  pages={62--67},
-  year={2023}
-}
-@article{spano2026algomove,
-  title={AlgoMove: Typed Abstractions for Algorand Smart Contracts},
-  author={Span{\`o}, Alvise and Benetollo, Lorenzo and Bugliesi, Michele and Crafa, Silvia and Ressi, Dalila and Rossi, Sabina},
-  journal={Blockchain: Research and Applications},
-  pages={100485},
-  year={2026},
-  publisher={Elsevier}
-}
-```
+The design, formalization, and implementation details of AlgoMove are presented in the following publications:
+
+- **Lorenzo Benetollo, Michele Bugliesi, Silvia Crafa, Sabina Rossi, Alvise Spanò**  
+  *ALGOMOVE: A Move Embedding for Algorand*.  
+  In *Proceedings of Blockchain 2023*, pp. 62–67, 2023.
+
+- **Alvise Spanò, Lorenzo Benetollo, Michele Bugliesi, Silvia Crafa, Dalila Ressi, Sabina Rossi**  
+  *AlgoMove: Typed Abstractions for Algorand Smart Contracts*.  
+  *Blockchain: Research and Applications*, Elsevier, 2026.
+
+BibTeX citations are available in [`CITATION.bib`](./CITATION.bib).
 
 
 # Installing the Aptos toolchain
