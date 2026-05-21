@@ -1,10 +1,31 @@
 # AlgoMove
-This is an evaluation repository for BCRA journal submission (30/6/2025).
 
-Authors: Alvise Spanò, Lorenzo Benetollo, Michele Bugliesi, Silvia Crafa, Dalila Ressi, Sabina Rossi
+Welcome to **AlgoMove**, a transpiler from Aptos Move to the Algorand platform.
 
-# Other repos
-AlgoMove is under active development at its official repository: [http://github.com/lollobene/AlgoMove]
+AlgoMove brings the Move programming model and its resource-oriented abstractions to Algorand, enabling the development of smart contracts with stronger typing guarantees and safer asset management primitives on top of the Algorand Virtual Machine (AVM).
+
+The prototype currently available in this repository is intended for experimentation and research purposes. While functional, it should be considered a research prototype rather than a production-ready toolchain.
+
+The scientific foundations, formalization, and implementation details of AlgoMove are presented in the following publications:
+
+```bibtex
+@inproceedings{benetollo2023algomove,
+  title={ALGOMOVE-A Move Embedding for Algorand.},
+  author={Benetollo, Lorenzo and Bugliesi, Michele and Crafa, Silvia and Rossi, Sabina and Span{\`o}, Alvise and others},
+  booktitle={Blockchain},
+  pages={62--67},
+  year={2023}
+}
+@article{spano2026algomove,
+  title={AlgoMove: Typed Abstractions for Algorand Smart Contracts},
+  author={Span{\`o}, Alvise and Benetollo, Lorenzo and Bugliesi, Michele and Crafa, Silvia and Ressi, Dalila and Rossi, Sabina},
+  journal={Blockchain: Research and Applications},
+  pages={100485},
+  year={2026},
+  publisher={Elsevier}
+}
+
+
 
 # Installing the Aptos toolchain
 AlgoMove relies on the Aptos toolchain, which include a full-blown Move compiler.
@@ -22,7 +43,7 @@ AlgoMove consists of two components: a *library* and a *transpiler* tool.
 The AlgoMove Library is a library of Move modules that can be imported from your Move program in place of the standard library.
 The AlgoMove Transpiler is the accompayning executable program that parses disassembled Move-bytecode files and converts them into TEAL.
 
-To use AlgoMove, write a Move program importing the AlgoMove Library modules you need and follow these steps:
+To use AlgoMove, write an Aptos Move program importing the AlgoMove Library modules you need and follow these steps:
 - use the Aptos Move compiler to compile your Move program: 
 	- `cd` to the program location and verify the folder is organized accordingly
 	- type `aptos move compile`
