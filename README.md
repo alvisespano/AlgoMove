@@ -24,7 +24,7 @@ The scientific foundations, formalization, and implementation details of AlgoMov
   year={2026},
   publisher={Elsevier}
 }
-
+```
 
 
 # Installing the Aptos toolchain
